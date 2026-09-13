@@ -45,3 +45,44 @@ Calculated values: priority score, workload score, overdue status, and workload 
 ## Setup
 
 Setup instructions will be added after the technology stack is finalized.
+
+## Code Structure
+```text
+studyflow/
+│
+├── index.html
+├── login.html
+├── register.html
+├── dashboard.html
+├── course.html
+│
+├── css/
+│   ├── global.css
+│   ├── auth.css
+│   ├── dashboard.css
+│   └── course.css
+│
+├── js/
+│   ├── app.js
+│   │
+│   ├── services/
+│   │   ├── storageService.js
+│   │   ├── authService.js
+│   │   ├── courseService.js
+│   │   ├── taskService.js
+│   │   └── smartService.js
+│   │
+│   └── ui/
+│       ├── dashboardUI.js
+│       ├── courseUI.js
+│       └── taskUI.js
+│
+├── docs/
+│   ├── studyflow-brief.pdf
+│   ├── data-contract.md
+│   ├── use-case-diagram.png
+│   ├── class-diagram.pdf
+│   └── workflow.pdf
+│
+└── README.md
+```
