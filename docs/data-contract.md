@@ -255,18 +255,18 @@ Before deleting a task, the system must display a confirmation.
 
 | Key | Value Type | Description |
 |---|---|---|
-| studyflow_users | Array<Student> | Registered students |
-| studyflow_courses | Array<Course> | All courses |
-| studyflow_tasks | Array<Task> | All tasks |
-| studyflow_current_user | String or null | studentId of logged-in student |
+| users | Array<Student> | Registered students |
+| courses | Array<Course> | All courses |
+| tasks | Array<Task> | All tasks |
+| current_user | String or null | studentId of logged-in student |
 
 <!--
 Initial data:
 { 
-  "studyflow_users": [],
-  "studyflow_courses": [],
-  "studyflow_tasks": [],
-  "studyflow_current_user": null
+  "users": [],
+  "courses": [],
+  "tasks": [],
+  "current_user": null
 }
 -->
 
