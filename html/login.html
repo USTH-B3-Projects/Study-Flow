@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Log in - StudyFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+  </head>
+  <body data-page="auth">
+    <header class="site-header">
+      <div
+        class="container"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <a class="brand" href="index.html"
+          ><i class="brand-mark"></i>Study<span>Flow</span></a
+        ><a class="btn btn-outline" href="register.html">Register</a>
+      </div>
+    </header>
+    <main class="container page-enter">
+      <section class="auth-shell">
+        <div class="auth-copy">
+          <div class="eyebrow">Welcome back</div>
+          <h1>Pick up where <strong>you left off.</strong></h1>
+          <p>Your courses, deadlines, and next steps in one calm workspace.</p>
+        </div>
+        <div class="card auth-panel">
+          <div class="tabs">
+            <a class="tab active" href="login.html">Log in</a
+            ><a class="tab" href="register.html">Register</a>
+          </div>
+          <form id="loginForm" class="auth-form">
+            <h2>Log in</h2>
+            <div class="form-field">
+              <label for="studentId">Student ID</label
+              ><input
+                class="input"
+                id="studentId"
+                name="studentId"
+                required
+                autocomplete="username"
+                placeholder="e.g. 1023"
+              />
+            </div>
+            <div class="form-field">
+              <label for="password">Password</label
+              ><input
+                class="input"
+                id="password"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+                placeholder="Enter your password"
+              />
+            </div>
+            <div class="form-error" id="formError" role="alert"></div>
+            <button class="btn btn-primary" type="submit">Log in</button>
+            <div class="auth-foot">
+              New to StudyFlow? <a href="register.html">Create account</a>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="../js/app.js"></script>
+  </body>
+</html>

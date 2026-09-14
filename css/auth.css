@@ -1,0 +1,143 @@
+.auth-shell {
+  min-height: calc(100vh - 82px);
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 70px;
+  padding: 70px 0;
+}
+.auth-copy h1 {
+  font-size: clamp(3rem, 6vw, 5.7rem);
+  line-height: 0.98;
+  letter-spacing: -0.07em;
+  max-width: 760px;
+  margin: 18px 0;
+}
+.auth-copy h1 strong {
+  color: var(--blue);
+}
+.auth-copy p {
+  font-size: 20px;
+  color: var(--muted);
+  max-width: 650px;
+}
+.feature-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 28px 0;
+}
+.feature-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 15px;
+  font-weight: 700;
+}
+.feature-chip b {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #eaf2ff;
+  color: var(--blue);
+}
+.auth-art {
+  position: relative;
+  min-height: 350px;
+}
+.art-card {
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  border-radius: 18px;
+  padding: 18px;
+  animation: float 5s ease-in-out infinite;
+}
+.art-card.one {
+  left: 2%;
+  top: 34%;
+  transform: rotate(-5deg);
+}
+.art-card.two {
+  right: 2%;
+  top: 12%;
+  animation-delay: -2s;
+}
+.art-card.three {
+  left: 28%;
+  bottom: 3%;
+  animation-delay: -4s;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+.auth-panel {
+  padding: 28px;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.tab {
+  background: none;
+  color: var(--muted);
+  padding: 12px;
+  font-weight: 800;
+  border-bottom: 3px solid transparent;
+}
+.tab.active {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+.auth-form h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.04em;
+}
+.form-error {
+  color: var(--red);
+  font-size: 13px;
+  min-height: 18px;
+}
+.auth-foot {
+  text-align: center;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 4px;
+}
+.auth-foot a {
+  color: var(--blue);
+  font-weight: 700;
+}
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 44px 0;
+  }
+  .auth-art {
+    min-height: 250px;
+    order: 2;
+  }
+  .auth-copy h1 {
+    max-width: 650px;
+  }
+  .auth-panel {
+    order: 1;
+  }
+}
