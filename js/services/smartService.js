@@ -1,21 +1,27 @@
-export function calculateUrgencyScore(deadline) {
+function calculateUrgencyScore(deadline) {
 
 }
 
-export function calculateImportanceScore(importance) {
+function calculateImportanceScore(importance) {
 
 }
 
-export function calculateRemainingWorkload(estimatedDuration, currentProgress) {
+function calculateRemainingWorkload(estimatedDuration, currentProgress) {
 
 }
 
-export function calculateWorkloadScore(remainingWorkload) {
+function calculateWorkloadScore(remainingWorkload) {
 
 }
 
 export function calculatePriorityScore(task) {
+    const urgencyScore =
+        calculateUrgencyScore(task.deadline);
 
+    const importanceScore =
+        calculateImportanceScore(task.importance);
+
+    //calculate priority
 }
 
 export function rankTasks(tasks) {
