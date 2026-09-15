@@ -54,6 +54,22 @@ export function login(studentId, password) {
   return { success: true, user };
 }
 
+export function resetPassword(studentId, password) {
+  studentId = String(studentId ?? "").trim();
+  password = String(password ?? "");
+  if (password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters" };
+  }
+
+  const users = getUsers();
+  const index = users.findIndex((user) => user.studentId === studentId);
+  if (index < 0) return { success: false, error: "Username not found" };
+
+  users[index] = { ...users[index], password };
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  return { success: true };
+}
+
 export function logout() {
   localStorage.removeItem(CURRENT_USER_KEY);
   return true;

@@ -51,8 +51,6 @@ Setup instructions will be added after the technology stack is finalized.
 studyflow/
 │
 ├── index.html
-├── login.html
-├── register.html
 ├── dashboard.html
 ├── course.html
 │

@@ -1,4 +1,4 @@
-import * as authService from "./services/authService.js?v=2";
+import * as authService from "./services/authService.js?v=3";
 import * as courseService from "./services/courseService.js";
 import * as taskService from "./services/taskService.js";
 import * as smartService from "./services/smartService.js";
@@ -55,7 +55,7 @@ function courseForm(course = {}) {
   return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="name" required value="${esc(course.name)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
 }
 function wireAuth() {
-  document.querySelectorAll("#loginForm, #registerForm").forEach((form) =>
+  document.querySelectorAll("#loginForm, #registerForm, #forgotForm").forEach((form) =>
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const d = Object.fromEntries(new FormData(form));
@@ -64,10 +64,17 @@ function wireAuth() {
           "Passwords do not match";
         return;
       }
-      let result =
-        form.id === "loginForm"
-          ? authService.login(d.studentId, d.password)
-          : authService.register(d.studentId, d.password, d.name);
+      let result = form.id === "loginForm"
+        ? authService.login(d.studentId, d.password)
+        : form.id === "registerForm"
+          ? authService.register(d.studentId, d.password, d.name)
+          : authService.resetPassword(d.studentId, d.password);
+      if (result.success && form.id === "forgotForm") {
+        form.reset();
+        document.querySelector('.tab[data-auth-target="login"]').click();
+        toast("Password updated");
+        return;
+      }
       if (result.success && form.id === "registerForm") {
         result = authService.login(d.studentId, d.password);
       }
