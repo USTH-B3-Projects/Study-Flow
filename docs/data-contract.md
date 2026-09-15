@@ -25,7 +25,7 @@ values, and relationships defined in this document.
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | studentId | String | Yes | null | Unique student identifier and login ID |
-| name | String | Yes | null | Student's display name |
+| studentName | String | Yes | null | Student's display name |
 | email | String | Yes | null | Student's email address |
 | password | String | Yes | null | Password for prototype authentication |
 
@@ -38,14 +38,14 @@ values, and relationships defined in this document.
 ### Account Validation
 
 - `studentId` must not be empty, must be unique, must be trimmed before being stored
-- `name` must not be empty, must be trimmed before being stored.
+- `studentName` must not be empty, must be trimmed before being stored.
 - `email` must have a valid email format, must be unique, must be trimmed and converted to lowercase.
 - `password` must meet the minimum length selected by the team.
 
 <!--
 {
   "studentId": "1023",
-  "name": "John Doe",
+  "studentName": "John Doe",
   "email": "john.doe@example.com",
   "password": "demo-password"
 }
@@ -57,19 +57,19 @@ values, and relationships defined in this document.
 |---|---|---:|---|---|
 | courseId | String | Yes | Generated | Unique course identifier |
 | studentId | String | Yes | null | ID of the course owner |
-| name | String | Yes | null | Course name |
+| courseName | String | Yes | null | Course name |
 | color | String or null | No | null | Optional course display color |
 
 ### Course Validation
 
-- `name` must not be empty.
+- `courseName` must not be empty.
 - `studentId` must refer to an existing student.
 - `color` must be a valid CSS color if provided.
 
 <!--{
   "courseId": "course-001",
   "studentId": "1023",
-  "name": "Deep Learning",
+  "courseName": "Deep Learning",
   "color": "#6C63FF"
 }
 -->
@@ -80,7 +80,7 @@ values, and relationships defined in this document.
 |---|---|---:|---|---|
 | taskId | String | Yes | Generated | Unique task identifier |
 | courseId | String | Yes | null | ID of the Course containing the task |
-| name | String | Yes | null | Task name |
+| taskName | String | Yes | null | Task name |
 | description | String | No | "" | Additional task information |
 | deadline | ISO Date String | Yes | null | Task deadline |
 | importance | ImportanceLevel | Yes | "medium" | User-selected importance |
@@ -90,7 +90,7 @@ values, and relationships defined in this document.
 
 ### Task Validation
 
-- `name` must not be empty.
+- `taskName` must not be empty.
 - `courseId` must refer to an existing course.
 - `deadline` must be a valid date.
 - `estimatedDuration` must be greater than 0 when provided.
@@ -104,7 +104,7 @@ values, and relationships defined in this document.
 {
   "taskId": "task-001",
   "courseId": "course-001",
-  "name": "Finish DL Lab",
+  "taskName": "Finish DL Lab",
   "description": "Complete the PyTorch exercise",
   "deadline": "2026-09-15T23:59:00.000Z",
   "importance": "high",
@@ -117,7 +117,7 @@ values, and relationships defined in this document.
 <!--{
   "taskId": "task-002",
   "courseId": "course-001",
-  "name": "Review Lecture 4",
+  "taskName": "Review Lecture 4",
   "description": "",
   "deadline": "2026-09-18T23:59:00.000Z",
   "importance": "medium",
@@ -255,18 +255,18 @@ Before deleting a task, the system must display a confirmation.
 
 | Key | Value Type | Description |
 |---|---|---|
-| users | Array<Student> | Registered students |
-| courses | Array<Course> | All courses |
-| tasks | Array<Task> | All tasks |
-| current_user | String or null | studentId of logged-in student |
+| studyflow_users | Array<Student> | Registered students |
+| studyflow_courses | Array<Course> | All courses |
+| studyflow_tasks | Array<Task> | All tasks |
+| studyflow_current_user | String or null | studentId of logged-in student |
 
 <!--
 Initial data:
 { 
-  "users": [],
-  "courses": [],
-  "tasks": [],
-  "current_user": null
+  "studyflow_users": [],
+  "studyflow_courses": [],
+  "studyflow_tasks": [],
+  "studyflow_current_user": null
 }
 -->
 
@@ -295,7 +295,7 @@ Tasks are sorted by:
 {
   "taskId": "task-001",
   "courseId": "course-001",
-  "name": "Finish DL Lab",
+  "taskName": "Finish DL Lab",
   "deadline": "2026-09-15T23:59:00.000Z",
   "importance": "high",
   "estimatedDuration": 6,

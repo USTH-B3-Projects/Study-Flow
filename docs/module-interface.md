@@ -51,7 +51,7 @@ Manages course data belonging to students.
 | Function | Parameters | Expected return | Responsibility |
 | --- | --- | --- | --- |
 | `createCourse(course)` | `course: object` | `Course` | Generate an ID and create a course. |
-| `getCoursesByStudent(studentId)` | `studentId: string` | `Course[]` | Return all courses belonging to a student. |
+| `getCoursesByStudentId(studentId)` | `studentId: string` | `Course[]` | Return all courses belonging to a student. |
 | `getCourseById(courseId)` | `courseId: string` | `Course \| null` | Return one course by ID. |
 | `updateCourse(courseId, data)` | `courseId: string`, `data: object` | `Course \| null` | Update the permitted fields of a course. |
 | `deleteCourse(courseId)` | `courseId: string` | `boolean` | Delete a course and coordinate removal of its related tasks. |

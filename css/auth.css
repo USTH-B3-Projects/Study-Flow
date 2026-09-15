@@ -1,0 +1,237 @@
+.auth-shell {
+    min-height: calc(100vh - 82px);
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+    gap: 64px;
+    padding: 52px 0 64px;
+}
+
+.auth-copy h1 {
+    font-size: clamp(3rem, 5vw, 4.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    max-width: 760px;
+    margin: 18px 0;
+}
+
+.auth-copy,
+.auth-panel,
+.auth-form,
+.form-field {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.auth-copy h1 strong {
+    color: var(--blue);
+}
+
+.auth-copy p {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 650px;
+    margin: 0;
+}
+
+.feature-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 28px 0;
+}
+
+.feature-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 15px;
+    font-weight: 700;
+}
+
+.feature-chip b {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #eaf2ff;
+    color: var(--blue);
+}
+
+.auth-art {
+    position: relative;
+    min-height: 320px;
+}
+
+.art-card {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    border-radius: 18px;
+    padding: 18px;
+    animation: float 5s ease-in-out infinite;
+}
+
+.art-card.one {
+    left: 2%;
+    top: 34%;
+    transform: rotate(-5deg);
+}
+
+.art-card.two {
+    right: 2%;
+    top: 12%;
+    animation-delay: -2s;
+}
+
+.art-card.three {
+    left: 28%;
+    bottom: 3%;
+    animation-delay: -4s;
+}
+
+@keyframes float {
+    50% {
+        transform: translateY(-10px) rotate(1deg);
+    }
+}
+
+.auth-panel {
+    width: 100%;
+    max-width: 520px;
+    justify-self: end;
+    padding: 30px;
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+}
+
+.tab {
+    background: none;
+    color: var(--muted);
+    padding: 12px;
+    font-weight: 800;
+    border-bottom: 3px solid transparent;
+}
+
+.tab.active {
+    color: var(--blue);
+    border-color: var(--blue);
+}
+
+.auth-form {
+    display: grid;
+    gap: 16px;
+}
+
+.auth-form h2 {
+    margin: 0;
+    font-size: 30px;
+    letter-spacing: -0.04em;
+}
+
+.form-error {
+    color: var(--red);
+    font-size: 13px;
+    min-height: 18px;
+}
+
+.auth-foot {
+    text-align: center;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+    margin-top: 4px;
+}
+
+.auth-foot a {
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.landing-shell {
+    padding-bottom: 64px;
+}
+
+.about-card {
+    margin-bottom: 64px;
+    padding: 30px;
+}
+
+.about-card h2 {
+    margin: 0 0 8px;
+}
+
+.about-card p {
+    max-width: 720px;
+    margin: 0;
+}
+
+@media (max-width: 900px) {
+    .auth-shell {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+        padding: 42px 0;
+    }
+
+    .auth-art {
+        min-height: 250px;
+        order: 2;
+    }
+
+    .auth-copy h1 {
+        max-width: 650px;
+        margin: 0;
+    }
+
+    .auth-panel {
+        order: 1;
+        justify-self: stretch;
+        max-width: none;
+    }
+}
+
+@media (max-width: 560px) {
+    .auth-shell {
+        padding: 34px 0 48px;
+    }
+
+    .auth-copy h1 {
+        font-size: clamp(2.6rem, 13vw, 3.4rem);
+    }
+
+    .auth-copy h1,
+    .auth-copy p {
+        overflow-wrap: anywhere;
+    }
+
+    .auth-copy p {
+        font-size: 17px;
+    }
+
+    .auth-art {
+        min-height: 280px;
+        overflow: hidden;
+    }
+
+    .art-card {
+        max-width: 62%;
+        padding: 14px;
+        font-size: 13px;
+    }
+
+    .auth-panel {
+        padding: 22px;
+        width: 100%;
+        max-width: 100%;
+    }
+}
