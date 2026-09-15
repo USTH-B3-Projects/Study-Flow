@@ -22,57 +22,77 @@
           <a href="#features">Features</a><a href="#about">About</a>
         </nav>
         <div class="nav-actions">
-          <a class="btn btn-outline" href="login.html">Log in</a
-          ><a class="btn btn-primary" href="register.html">Register</a>
+          <a class="btn btn-outline" href="#authCard" data-auth-target="login" data-auth-scroll>Log in</a
+          ><a class="btn btn-primary" href="#authCard" data-auth-target="register" data-auth-scroll>Register</a>
         </div>
       </div>
     </header>
-    <main class="container page-enter">
+    <main class="container landing-container page-enter">
       <section class="auth-shell landing-shell">
-        <div class="auth-copy">
-          <div class="eyebrow">A smarter way to study</div>
-          <h1>Plan smarter.<br />Study with <strong>confidence.</strong></h1>
-          <p>
-            Organize courses, track progress, and know what to work on next.
-          </p>
-          <div class="feature-row" id="features">
-            <div class="feature-chip"><b>+</b>Smart priority</div>
-            <div class="feature-chip"><b>+</b>Progress tracking</div>
-            <div class="feature-chip"><b>!</b>Workload warning</div>
-          </div>
-          <div class="auth-art">
-            <div class="art-card one">
-              * Complete assignment<br /><br />* Read chapter 4<br /><br />-
-              Review notes
-            </div>
-            <div class="art-card two">
-              <strong>Course progress</strong>
-              <div class="progress" style="margin-top: 14px">
-                <span style="width: 78%"></span>
-              </div>
-              <small>78% on track</small>
-            </div>
-            <div class="art-card three">
-              <strong>Priority</strong>
-              <p style="color: var(--muted); margin: 8px 0 0">
-                Know your next best step.
-              </p>
+        <div class="hero-left">
+          <div class="auth-copy">
+            <div class="eyebrow">A smarter way to study</div>
+            <h1>Plan smarter.<br />Study with <strong>confidence.</strong></h1>
+            <p>
+              Organize courses, track progress, and know what to work on next.
+            </p>
+            <div class="feature-row" id="features">
+              <div class="feature-chip"><b>+</b>Smart priority</div>
+              <div class="feature-chip"><b>+</b>Progress tracking</div>
+              <div class="feature-chip"><b>!</b>Workload warning</div>
             </div>
           </div>
+          <img
+            class="hero-illustration"
+            src="../Thinking.png"
+            alt="Student thinking while studying"
+          />
         </div>
-        <div class="card auth-panel">
-          <div class="tabs">
-            <a class="tab active" href="login.html">Log in</a
-            ><a class="tab" href="register.html">Register</a>
+        <div class="card auth-panel" id="authCard">
+          <div class="tabs" role="tablist" aria-label="Authentication">
+            <button class="tab active" type="button" role="tab" aria-selected="true" data-auth-target="login">Log in</button
+            ><button class="tab" type="button" role="tab" aria-selected="false" data-auth-target="register">Register</button>
           </div>
-          <div class="auth-form">
-            <h2>Study with clarity</h2>
-            <p class="muted">Your plan stays focused on what matters.</p>
-            <a class="btn btn-primary" href="login.html">Log in to StudyFlow</a
-            ><a class="btn btn-outline" href="register.html"
-              >Create free account</a
-            >
-          </div>
+          <form id="loginForm" class="auth-form">
+            <h2>Log in</h2>
+            <div class="form-field">
+              <label for="loginStudentId">Username </label>
+              <input class="input" id="loginStudentId" name="studentId" required autocomplete="username" placeholder="e.g. 1023" />
+            </div>
+            <div class="form-field">
+              <label for="loginPassword">Password</label>
+              <input class="input" id="loginPassword" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password" />
+            </div>
+            <div class="form-error" role="alert"></div>
+            <button class="btn btn-primary" type="submit">Log in</button>
+            <div class="auth-foot">
+              New to StudyFlow? <a href="#authCard" data-auth-target="register">Create account</a>
+            </div>
+          </form>
+          <form id="registerForm" class="auth-form" hidden>
+            <h2>Create account</h2>
+            <div class="form-field">
+              <label for="registerName">Name</label>
+              <input class="input" id="registerName" name="name" required placeholder="Your name" />
+            </div>
+            <div class="form-field">
+              <label for="registerStudentId">Username</label>
+              <input class="input" id="registerStudentId" name="studentId" required placeholder="e.g. 1023" />
+            </div>
+            <div class="form-field">
+              <label for="registerPassword">Password</label>
+              <input class="input" id="registerPassword" name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters" />
+            </div>
+            <div class="form-field">
+              <label for="registerConfirmPassword">Confirm password</label>
+              <input class="input" id="registerConfirmPassword" name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Enter your password again" />
+            </div>
+            <div class="form-error" role="alert"></div>
+            <button class="btn btn-primary" type="submit">Create account</button>
+            <div class="auth-foot">
+              Already have an account? <a href="#authCard" data-auth-target="login">Log in</a>
+            </div>
+          </form>
         </div>
       </section>
       <section id="about" class="card about-card">
@@ -83,5 +103,6 @@
         </p>
       </section>
     </main>
+    <script type="module" src="../js/app.js?v=2"></script>
   </body>
 </html>

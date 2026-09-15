@@ -1,4 +1,4 @@
-import * as authService from "./services/authService.js";
+import * as authService from "./services/authService.js?v=2";
 import * as courseService from "./services/courseService.js";
 import * as taskService from "./services/taskService.js";
 import * as smartService from "./services/smartService.js";
@@ -55,26 +55,55 @@ function courseForm(course = {}) {
   return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="name" required value="${esc(course.name)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
 }
 function wireAuth() {
-  const form = $("#loginForm") || $("#registerForm");
-  if (!form) return;
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const d = Object.fromEntries(new FormData(form));
-    let result =
-      form.id === "loginForm"
-        ? authService.login(d.studentId, d.password)
-        : authService.register(d.studentId, d.email, d.password, d.name);
-    if (result.success && form.id === "registerForm") {
-      result = authService.login(d.studentId, d.password);
-    }
-    if (!result.success) return ($("#formError").textContent = result.error);
-    location.href = "dashboard.html";
-  });
+  document.querySelectorAll("#loginForm, #registerForm").forEach((form) =>
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(form));
+      if (form.id === "registerForm" && d.password !== d.confirmPassword) {
+        form.querySelector(".form-error").textContent =
+          "Passwords do not match";
+        return;
+      }
+      let result =
+        form.id === "loginForm"
+          ? authService.login(d.studentId, d.password)
+          : authService.register(d.studentId, d.password, d.name);
+      if (result.success && form.id === "registerForm") {
+        result = authService.login(d.studentId, d.password);
+      }
+      if (!result.success) {
+        form.querySelector(".form-error").textContent = result.error;
+        return;
+      }
+      location.href = "dashboard.html";
+    }),
+  );
+}
+function wireAuthTabs() {
+  const card = $("#authCard");
+  if (!card) return;
+  const show = (name, scroll) => {
+    card.querySelectorAll(".auth-form").forEach(
+      (form) => (form.hidden = form.id !== `${name}Form`),
+    );
+    card.querySelectorAll(".tab").forEach((tab) => {
+      const active = tab.dataset.authTarget === name;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active);
+    });
+    if (scroll) card.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  document.querySelectorAll("[data-auth-target]").forEach((control) =>
+    control.addEventListener("click", (e) => {
+      e.preventDefault();
+      show(control.dataset.authTarget, control.hasAttribute("data-auth-scroll"));
+    }),
+  );
 }
 function initShell() {
   const u = authService.getCurrentUser();
   if (!u) {
-    location.href = "login.html";
+    location.href = "index.html#authCard";
     return null;
   }
   const name = u.name || u.studentId;
@@ -308,6 +337,7 @@ function initCourse() {
   };
   render();
 }
+wireAuthTabs();
 wireAuth();
 const page = document.body.dataset.page;
 if (page === "dashboard") initDashboard();

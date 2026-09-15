@@ -26,7 +26,6 @@ values, and relationships defined in this document.
 |---|---|---:|---|---|
 | studentId | String | Yes | null | Unique student identifier and login ID |
 | name | String | Yes | null | Student's display name |
-| email | String | Yes | null | Student's email address |
 | password | String | Yes | null | Password for prototype authentication |
 
 <b>Login Input</b>
@@ -39,14 +38,12 @@ values, and relationships defined in this document.
 
 - `studentId` must not be empty, must be unique, must be trimmed before being stored
 - `name` must not be empty, must be trimmed before being stored.
-- `email` must have a valid email format, must be unique, must be trimmed and converted to lowercase.
 - `password` must meet the minimum length selected by the team.
 
 <!--
 {
   "studentId": "1023",
   "name": "John Doe",
-  "email": "john.doe@example.com",
   "password": "demo-password"
 }
 -->

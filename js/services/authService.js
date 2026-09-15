@@ -14,17 +14,13 @@ function getUsers() {
   return Array.isArray(users) ? users : [];
 }
 
-export function register(studentId, email, password) {
-  const name = String(arguments[3] ?? "").trim();
+export function register(studentId, password, name) {
+  name = String(name ?? "").trim();
   studentId = String(studentId ?? "").trim();
-  email = String(email ?? "").trim().toLowerCase();
   password = String(password ?? "");
 
-  if (!studentId || !email || !password) {
+  if (!studentId || !name || !password) {
     return { success: false, error: "All fields are required" };
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { success: false, error: "Invalid email address" };
   }
   if (password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters" };
@@ -34,14 +30,9 @@ export function register(studentId, email, password) {
   if (users.some((user) => user.studentId === studentId)) {
     return { success: false, error: "Student ID already registered" };
   }
-  if (users.some((user) => String(user.email).toLowerCase() === email)) {
-    return { success: false, error: "Email already registered" };
-  }
-
   const user = {
     studentId,
     name,
-    email,
     password,
     createdAt: new Date().toISOString(),
   };
