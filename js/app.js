@@ -1,7 +1,7 @@
-import { authService } from "./services/authService.js";
-import { courseService } from "./services/courseService.js";
-import { taskService } from "./services/taskService.js";
-import { smartService } from "./services/smartService.js";
+import * as authService from "./services/authService.js";
+import * as courseService from "./services/courseService.js";
+import * as taskService from "./services/taskService.js";
+import * as smartService from "./services/smartService.js";
 
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
@@ -60,53 +60,73 @@ function wireAuth() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const d = Object.fromEntries(new FormData(form));
-    try {
-      if (form.id === "loginForm") authService.login(d);
-      else authService.register(d);
-      location.href = "dashboard.html";
-    } catch (err) {
-      $("#formError").textContent = err.message;
+    let result =
+      form.id === "loginForm"
+        ? authService.login(d.studentId, d.password)
+        : authService.register(d.studentId, d.email, d.password, d.name);
+    if (result.success && form.id === "registerForm") {
+      result = authService.login(d.studentId, d.password);
     }
+    if (!result.success) return ($("#formError").textContent = result.error);
+    location.href = "dashboard.html";
   });
 }
 function initShell() {
-  const u = authService.require();
-  if (!u) return;
-  $("#userName") && ($("#userName").textContent = u.name);
+  const u = authService.getCurrentUser();
+  if (!u) {
+    location.href = "login.html";
+    return null;
+  }
+  const name = u.name || u.studentId;
+  $("#userName") && ($("#userName").textContent = name);
+  $("#userAvatar") &&
+    ($("#userAvatar").textContent = name
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase());
   $("#logoutBtn")?.addEventListener("click", () => {
     authService.logout();
     location.href = "index.html";
   });
+  return u;
 }
 function initDashboard() {
-  initShell();
-  const u = authService.current(),
+  const u = initShell();
+  if (!u) return;
+  const name = u.name || u.studentId,
     courses = courseService.list(u.studentId),
     tasks = taskService.allForStudent(u.studentId),
     ranked = smartService.rank(tasks);
-  $("#greeting").textContent = `Good morning, ${u.name}`;
+  $("#greeting").textContent = `Good morning, ${name}`;
   const completed = tasks.filter(
       (t) => Number(t.currentProgress) === 100,
     ).length,
     overdue = tasks.filter((t) => smartService.enrich(t).isOverdue).length;
   $("#stats").innerHTML =
-    `<article class="card stat"><div class="stat-icon">!</div><div><span class="muted">Courses</span><strong>${courses.length}</strong></div></article><article class="card stat"><div class="stat-icon green">!</div><div><span class="muted">Pending tasks</span><strong>${tasks.length - completed}</strong></div></article><article class="card stat"><div class="stat-icon red">!</div><div><span class="muted">Overdue</span><strong>${overdue}</strong></div></article>`;
+    `<article class="card stat"><div class="stat-icon" aria-hidden="true">C</div><div><span class="muted">Courses</span><strong>${courses.length}</strong></div></article><article class="card stat"><div class="stat-icon green" aria-hidden="true">T</div><div><span class="muted">Pending tasks</span><strong>${tasks.length - completed}</strong></div></article><article class="card stat"><div class="stat-icon red" aria-hidden="true">!</div><div><span class="muted">Overdue</span><strong>${overdue}</strong></div></article>`;
   const risky = ranked.find((t) => t.hasWorkloadWarning || t.isOverdue);
   $("#warningArea").innerHTML = risky
-    ? `<div class="card warning-banner"><div><h3>${risky.isOverdue ? "Overdue task" : "Workload warning"}</h3><p>${esc(risky.name)} - ${risky.isOverdue ? "Deadline passed" : `${risky.remainingWorkload.toFixed(1)}h remaining and ${dueLabel(risky.deadline).toLowerCase()}.`}</p></div><a class="btn btn-outline" href="course.html?courseId=${encodeURIComponent(risky.courseId)}">View task</a></div>`
+    ? `<div class="card warning-banner"><div class="warning-copy"><div class="warning-icon" aria-hidden="true">!</div><div><h3>${risky.isOverdue ? "Overdue task" : "Workload warning"}</h3><p><strong>${esc(risky.name)}</strong> · ${risky.isOverdue ? "Deadline passed" : `${risky.remainingWorkload.toFixed(1)}h remaining · ${dueLabel(risky.deadline)}`}</p></div></div><a class="btn btn-outline" href="course.html?courseId=${encodeURIComponent(risky.courseId)}">View task</a></div>`
     : "";
   $("#courseGrid").innerHTML = courses.length
     ? courses
         .map((c) => {
           const ts = tasks.filter((t) => t.courseId === c.courseId),
             done = ts.filter((t) => Number(t.currentProgress) === 100).length,
-            pct = ts.length ? Math.round((done / ts.length) * 100) : 0,
+            pct = ts.length
+              ? Math.round(
+                  ts.reduce((sum, t) => sum + Number(t.currentProgress || 0), 0) /
+                    ts.length,
+                )
+              : 0,
             next = smartService.rank(ts)[0];
-          return `<a class="card course-card" href="course.html?courseId=${encodeURIComponent(c.courseId)}"><div class="course-top"><div class="course-dot" style="background:${c.color || "#e9f2ff"}22;color:${c.color || "var(--blue)"}">${esc(c.name.slice(0, 1).toUpperCase())}</div><div><h3>${esc(c.name)}</h3><p>${done} of ${ts.length} tasks completed</p></div><span style="margin-left:auto;font-size:22px">&gt;</span></div><div class="progress"><span style="width:${pct}%;background:${c.color || "var(--blue)"}"></span></div><div class="course-meta"><span>${pct}% complete</span><span>${next ? dueLabel(next.deadline) : "No pending tasks"}</span></div></a>`;
+          return `<a class="card course-card" style="--course-color:${c.color || "var(--blue)"}" href="course.html?courseId=${encodeURIComponent(c.courseId)}"><div class="course-top"><div class="course-dot" style="background:${c.color || "#e9f2ff"}22;color:${c.color || "var(--blue)"}">${esc(c.name.slice(0, 1).toUpperCase())}</div><div><h3>${esc(c.name)}</h3><p>${ts.length} ${ts.length === 1 ? "task" : "tasks"}</p></div><span class="course-link" style="margin-left:auto">View course &rarr;</span></div><div class="progress" aria-label="${pct}% complete"><span style="width:${pct}%;background:${c.color || "var(--blue)"}"></span></div><div class="course-meta"><strong>${pct}% complete</strong><span>${done} completed · ${ts.length - done} remaining</span></div><div class="course-meta"><span>${next ? `Next: ${dueLabel(next.deadline)}` : "No pending tasks"}</span></div></a>`;
         })
         .join("")
-    : `<div class="empty" style="grid-column:1/-1">No courses yet. Add your first course to start planning.</div>`;
-  $("#addCourseBtn").addEventListener("click", () =>
+    : `<div class="empty" style="grid-column:1/-1"><h3>No courses yet</h3><p>Start by creating your first course.</p><button class="btn btn-primary" data-add-course>+ Add course</button></div>`;
+  const addCourse = () =>
     modal("Add course", courseForm(), (d, close) => {
       try {
         courseService.create({
@@ -120,8 +140,9 @@ function initDashboard() {
       } catch (e) {
         toast(e.message);
       }
-    }),
-  );
+    });
+  $("#addCourseBtn").onclick = addCourse;
+  $("[data-add-course]")?.addEventListener("click", addCourse);
   const open = () => {
     $("#recommendDrawer").classList.add("open");
     $("#drawerBackdrop").classList.add("open");
@@ -129,7 +150,7 @@ function initDashboard() {
       ? ranked
           .map((t, i) => {
             const c = courses.find((x) => x.courseId === t.courseId);
-            return `<article class="recommend"><div class="rank">${i + 1}</div><div><h3>${esc(t.name)}</h3><p>${esc(c?.name || "Course")} - ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div></div><a class="btn btn-outline" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View task</a></article>`;
+            return `<article class="recommend"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending">Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.name || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div></div><a class="btn ${i === 0 ? "btn-primary" : "btn-outline"}" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View task</a></article>`;
           })
           .join("")
       : `<div class="empty">No pending tasks. You are caught up.</div>`;
@@ -143,9 +164,9 @@ function initDashboard() {
   $("#drawerBackdrop").addEventListener("click", close);
 }
 function initCourse() {
-  initShell();
-  const u = authService.current(),
-    courseId = new URLSearchParams(location.search).get("courseId"),
+  const u = initShell();
+  if (!u) return;
+  const courseId = new URLSearchParams(location.search).get("courseId"),
     course = courseService.get(courseId);
   if (!course || course.studentId !== u.studentId) {
     location.href = "dashboard.html";
@@ -155,14 +176,20 @@ function initCourse() {
     sort = "priority";
   const render = () => {
     const raw = taskService.list(courseId),
-      all = raw.map(smartService.enrich);
+      all = raw.map((task) => smartService.enrich(task));
     const counts = {
       pending: all.filter((t) => t.displayStatus === "pending").length,
       completed: all.filter((t) => t.displayStatus === "completed").length,
       overdue: all.filter((t) => t.displayStatus === "overdue").length,
     };
+    const progress = all.length
+      ? Math.round(
+          all.reduce((sum, t) => sum + Number(t.currentProgress || 0), 0) /
+            all.length,
+        )
+      : 0;
     $("#courseHero").innerHTML =
-      `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.name.slice(0, 1).toUpperCase())}</div><div><h1>${esc(course.name)}</h1><p>${all.length} tasks - ${counts.completed} completed</p></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
+      `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.name.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.name)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
     $("#courseStats").innerHTML =
       `<article class="card course-stat"><span>Pending</span><strong>${counts.pending}</strong></article><article class="card course-stat"><span>Completed</span><strong style="color:var(--green)">${counts.completed}</strong></article><article class="card course-stat"><span>Overdue</span><strong style="color:var(--red)">${counts.overdue}</strong></article>`;
     $("#filters").innerHTML = [
@@ -192,10 +219,10 @@ function initCourse() {
       ? list
           .map(
             (t) =>
-              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Mark complete">${t.completionStatus === "completed" ? "?" : ""}</button><div><div class="task-name">${esc(t.name)}</div><div class="task-sub">${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : `<span class="status ${t.completionStatus}">${t.completionStatus === "completed" ? "Completed" : "In progress"}</span>`}</div></div><div class="task-detail"><strong>${dueLabel(t.deadline)}</strong>${fmtDate(t.deadline)}</div><div class="task-detail"><strong>${t.importance.replace("-", " ")}</strong>importance</div><div class="inline-progress"><div class="progress"><span style="width:${t.currentProgress}%"></span></div><small>${t.currentProgress}%</small></div><div class="task-detail"><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)} priority</strong>${t.estimatedDuration == null ? "Duration not estimated" : `${t.remainingWorkload.toFixed(1)}h remaining`}</div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit">x</button><button class="small-btn" data-delete="${t.taskId}" title="Delete">x</button></div></article>`,
+              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div><div class="task-name">${esc(t.name)}</div><div class="task-sub">${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : `<span class="status ${t.completionStatus}">${t.completionStatus === "completed" ? "Completed" : "In progress"}</span>`}</div></div><div class="task-detail"><span class="task-label">Deadline</span><strong>${dueLabel(t.deadline)}</strong>${fmtDate(t.deadline)}</div><div class="task-detail"><span class="task-label">Importance</span><strong>${t.importance.replace("-", " ")}</strong></div><div class="task-detail"><span class="task-label">Progress</span><div class="inline-progress"><div class="progress"><span style="width:${t.currentProgress}%"></span></div><small>${t.currentProgress}%</small></div></div><div class="task-detail"><span class="task-label">Priority</span><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong>${t.estimatedDuration == null ? "Duration not estimated" : `${t.remainingWorkload.toFixed(1)}h remaining`}</div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div></article>`,
           )
           .join("")
-      : `<div class="empty">No tasks match this filter.</div>`;
+      : `<div class="empty"><h3>${filter === "all" ? "No tasks yet" : "No matching tasks"}</h3><p>${filter === "all" ? "Add your first task to start tracking this course." : "Try another filter."}</p></div>`;
     document.querySelectorAll("[data-filter]").forEach(
       (b) =>
         (b.onclick = () => {
@@ -273,7 +300,7 @@ function initCourse() {
       modal(
         "Next tasks in this course",
         r.length
-          ? `<div class="recommend-list">${r.map((t, i) => `<article class="recommend"><div class="rank">${i + 1}</div><div><h3>${esc(t.name)}</h3><p>${dueLabel(t.deadline)} ? ${t.remainingWorkload.toFixed(1)}h remaining</p></div></article>`).join("")}</div>`
+          ? `<div class="recommend-list">${r.map((t, i) => `<article class="recommend"><div class="rank">${i + 1}</div><div><h3>${esc(t.name)}</h3><p>${dueLabel(t.deadline)} · ${t.remainingWorkload.toFixed(1)}h remaining</p></div></article>`).join("")}</div>`
           : '<div class="empty">No pending tasks.</div>',
         () => {},
       );

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -14,35 +14,28 @@
   </head>
   <body data-page="dashboard">
     <header class="site-header">
-      <div
-        class="container"
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        "
-      >
+      <div class="container header-inner">
         <a class="brand" href="dashboard.html"
-          ><i class="brand-mark"></i>Study<span>Flow</span></a
+          ><img class="brand-logo" src="../logo.png" alt="StudyFlow" /></a
         >
         <nav class="nav nav-links">
           <a class="active" href="dashboard.html">Dashboard</a>
         </nav>
-        <div class="nav-actions">
-          <span id="userName" class="muted" style="font-weight: 700"></span
-          ><button id="logoutBtn" class="btn btn-outline">Log out</button>
+        <div class="nav-actions user-actions">
+          <span id="userAvatar" class="user-avatar" aria-hidden="true"></span>
+          <span id="userName" class="user-name"></span>
+          <button id="logoutBtn" class="btn btn-outline">Log out</button>
         </div>
       </div>
     </header>
     <main class="container dashboard-main page-enter">
       <section class="dash-head">
         <div>
-          <div class="eyebrow">Your study overview</div>
           <h1 id="greeting">Good morning</h1>
-          <p>Stay focused on the next useful step.</p>
+          <p>Here’s an overview of your study progress.</p>
         </div>
         <div class="action-row">
-          <button id="addCourseBtn" class="btn btn-outline">+ Add course</button
+          <button id="addCourseBtn" class="btn btn-outline"><span aria-hidden="true">+</span> Add course</button
           ><button id="recommendBtn" class="btn btn-primary">
             What should I do next?
           </button>
@@ -61,7 +54,7 @@
           <h2>What should I do next?</h2>
           <p class="muted">Tasks ranked across all your courses.</p>
         </div>
-        <button id="closeDrawer" class="icon-btn">x</button>
+        <button id="closeDrawer" class="icon-btn" aria-label="Close recommendations">&times;</button>
       </div>
       <div id="recommendList" class="recommend-list"></div>
     </aside>

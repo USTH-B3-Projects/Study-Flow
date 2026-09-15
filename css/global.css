@@ -1,19 +1,21 @@
 :root {
-  --blue: #1769ff;
-  --blue-strong: #0b57df;
-  --ink: #12224d;
-  --muted: #66759d;
-  --line: #dce6f6;
+  --blue: #1267ed;
+  --blue-strong: #0756d8;
+  --blue-soft: #eef6ff;
+  --ink: #071943;
+  --muted: #5e70a0;
+  --line: #dce8f7;
   --surface: #fff;
-  --page: #f7faff;
+  --page: #f7fbff;
   --green: #0aa981;
   --green-soft: #e8faf4;
   --red: #e34b55;
   --red-soft: #fff0f1;
   --amber: #d99216;
   --amber-soft: #fff7e7;
-  --shadow: 0 18px 50px rgba(24, 72, 150, 0.1);
-  --radius: 22px;
+  --shadow: 0 12px 32px rgba(32, 91, 157, 0.08);
+  --radius: 16px;
+  --space-section: 34px;
   --font: Outfit, ui-sans-serif, system-ui, sans-serif;
 }
 * {
@@ -35,8 +37,8 @@ body:before {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(circle at 88% 8%, #eaf3ff 0 16%, transparent 38%),
-    radial-gradient(circle at 10% 90%, #edf7ff 0 13%, transparent 34%),
+    radial-gradient(circle at 94% 12%, #eaf5ff 0 13%, transparent 34%),
+    radial-gradient(circle at 6% 96%, #e8f4ff 0 14%, transparent 33%),
     linear-gradient(180deg, #fff 0%, var(--page) 70%);
 }
 a {
@@ -54,7 +56,7 @@ button {
   border: 0;
 }
 .container {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1320px, calc(100% - 48px));
   margin: auto;
 }
 .site-header {
@@ -69,35 +71,25 @@ button {
   top: 0;
   z-index: 10;
 }
+.site-header > .container {
+  min-height: inherit;
+}
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  flex: 0 0 auto;
 }
-.brand-mark {
-  width: 38px;
-  height: 30px;
-  border-radius: 9px 9px 15px 15px;
-  background: linear-gradient(145deg, #4090ff, #0756dc);
-  position: relative;
-  display: grid;
-  place-items: center;
-  color: white;
-  font-weight: 900;
-}
-.brand-mark:after {
-  content: "";
-  width: 18px;
-  height: 5px;
-  border-radius: 9px;
-  background: white;
-  transform: rotate(-25deg);
-}
-.brand span {
-  color: var(--blue);
+.brand-logo {
+  display: block;
+  width: min(184px, 42vw);
+  height: auto;
+  max-height: 42px;
+  object-fit: contain;
 }
 .nav {
   display: flex;
@@ -114,12 +106,30 @@ button {
 }
 .nav-actions {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: #e6f1ff;
+  font-weight: 800;
+}
+.user-name {
+  font-weight: 700;
+}
 .btn {
-  min-height: 46px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   padding: 0 20px;
-  border-radius: 13px;
+  border-radius: 11px;
   border: 1px solid transparent;
   font-weight: 700;
   transition:
@@ -141,7 +151,7 @@ button {
 .btn-outline {
   background: #fff;
   color: var(--blue);
-  border-color: #a9c7ff;
+  border-color: #8ab7ff;
 }
 .btn-ghost {
   background: #eef4ff;
@@ -154,8 +164,8 @@ button {
 .icon-btn {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: #f0f5ff;
+  border-radius: 10px;
+  background: var(--blue-soft);
   color: var(--ink);
   font-size: 20px;
 }
@@ -180,7 +190,7 @@ button {
   }
 }
 .card {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -215,7 +225,7 @@ button {
   color: var(--amber);
 }
 .progress {
-  height: 9px;
+  height: 8px;
   border-radius: 99px;
   background: #e6eefb;
   overflow: hidden;
@@ -224,7 +234,7 @@ button {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2e88ff, #1769ff);
+  background: var(--blue);
   transition: width 0.5s ease;
 }
 .form-field {
@@ -238,12 +248,14 @@ button {
 .input,
 .select,
 .textarea {
+  min-width: 0;
   width: 100%;
   border: 1px solid #cad8ee;
-  border-radius: 13px;
+  border-radius: 10px;
   background: #fff;
   color: var(--ink);
-  padding: 13px 14px;
+  min-height: 48px;
+  padding: 11px 14px;
   outline: none;
   transition:
     border 0.2s,
@@ -259,11 +271,14 @@ button {
   min-height: 90px;
   resize: vertical;
 }
+input[type="color"] {
+  padding: 4px;
+}
 .empty {
-  padding: 42px;
+  padding: 46px 24px;
   text-align: center;
   border: 1px dashed #bfd0eb;
-  border-radius: 18px;
+  border-radius: var(--radius);
   color: var(--muted);
 }
 .toast {
@@ -298,10 +313,19 @@ button {
     display: none;
   }
   .brand {
-    font-size: 21px;
+    width: min(150px, 42vw);
+  }
+  .brand-logo {
+    width: 100%;
+    max-height: 34px;
   }
   .nav-actions .btn {
-    padding: 0 13px;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .user-name {
+    display: none;
   }
   .card {
     border-radius: 18px;

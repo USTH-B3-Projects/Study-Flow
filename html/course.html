@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -15,37 +15,31 @@
   </head>
   <body data-page="course">
     <header class="site-header">
-      <div
-        class="container"
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        "
-      >
+      <div class="container header-inner">
         <a class="brand" href="dashboard.html"
-          ><i class="brand-mark"></i>Study<span>Flow</span></a
+          ><img class="brand-logo" src="../logo.png" alt="StudyFlow" /></a
         >
         <nav class="nav nav-links"><a href="dashboard.html">Dashboard</a></nav>
-        <div class="nav-actions">
-          <span id="userName" class="muted" style="font-weight: 700"></span
-          ><button id="logoutBtn" class="btn btn-outline">Log out</button>
+        <div class="nav-actions user-actions">
+          <span id="userAvatar" class="user-avatar" aria-hidden="true"></span>
+          <span id="userName" class="user-name"></span>
+          <button id="logoutBtn" class="btn btn-outline">Log out</button>
         </div>
       </div>
     </header>
     <main class="container course-main page-enter">
-      <a class="back-link" href="dashboard.html">? Back to dashboard</a>
+      <a class="back-link" href="dashboard.html">&larr; My courses</a>
       <section id="courseHero"></section>
       <section id="courseStats" class="course-stats"></section>
       <section class="task-toolbar">
         <div id="filters" class="filters"></div>
-        <div style="display: flex; gap: 9px">
-          <select id="sortSelect" class="select" style="width: auto">
+        <div class="toolbar-actions">
+          <select id="sortSelect" class="select">
             <option value="priority">Sort: Priority</option>
             <option value="deadline">Sort: Deadline</option>
             <option value="importance">Sort: Importance</option>
             <option value="createdAt">Sort: Created</option></select
-          ><button id="addTaskBtn" class="btn btn-primary">? Add task</button>
+          ><button id="addTaskBtn" class="btn btn-primary"><span aria-hidden="true">+</span> Add task</button>
         </div>
       </section>
       <section id="taskList" class="task-list"></section>
