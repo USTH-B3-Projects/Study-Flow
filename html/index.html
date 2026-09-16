@@ -36,7 +36,7 @@
             <p>
               Organize courses, track progress, and know what to work on next.
             </p>
-            <div class="feature-row" id="features">
+            <div class="feature-row">
               <div class="feature-chip"><b>+</b>Smart priority</div>
               <div class="feature-chip"><b>+</b>Progress tracking</div>
               <div class="feature-chip"><b>!</b>Workload warning</div>
@@ -112,14 +112,114 @@
           </form>
         </div>
       </section>
-      <section id="about" class="card about-card">
-        <h2>Built for real study weeks</h2>
-        <p class="muted">
-          StudyFlow combines deadlines, importance, progress, and remaining
-          workload into one clear plan.
-        </p>
+      <section id="features" class="landing-section features-section">
+        <div class="landing-content">
+          <div class="section-heading">
+            <h2>Everything you need to stay on track</h2>
+            <p>StudyFlow helps you organize your courses, manage deadlines, and focus on the tasks that matter most.</p>
+          </div>
+          <div class="feature-grid">
+            <article class="landing-card feature-card">
+              <div class="feature-icon" aria-hidden="true">▤</div>
+              <h3>Course Management</h3>
+              <p>Keep all your courses organized in one place.</p>
+              <div class="mini-panel course-list" aria-hidden="true">
+                <span><b><i></i>CS 101</b><small>4 tasks</small></span>
+                <span><b><i></i>Math 204</b><small>2 tasks</small></span>
+                <span><b><i></i>Phys 102</b><small>5 tasks</small></span>
+              </div>
+            </article>
+            <article class="landing-card feature-card">
+              <div class="feature-icon" aria-hidden="true">✓</div>
+              <h3>Task Management</h3>
+              <p>Keep track of what needs to be done and when.</p>
+              <div class="mini-panel task-preview" aria-hidden="true">
+                <b>Lab Assignment 2</b><em>High</em>
+                <small>Due Thu, 11:59 PM <strong>CS 101</strong></small>
+                <i><b></b></i>
+              </div>
+            </article>
+            <article class="landing-card feature-card">
+              <div class="feature-icon" aria-hidden="true">▥</div>
+              <h3>Progress Tracking</h3>
+              <p>See your progress and understand what remains.</p>
+              <div class="mini-panel progress-preview" aria-hidden="true">
+                <span><b>Weekly Goal</b><strong>85% done</strong></span>
+                <i><b></b></i>
+                <small>Completed: 18 <span>12 remaining</span></small>
+              </div>
+            </article>
+            <article class="landing-card feature-card featured">
+              <span class="core-badge">Core feature</span>
+              <div class="feature-icon" aria-hidden="true">ϟ</div>
+              <h3>Smart Prioritization</h3>
+              <p>Know which task deserves your attention first.</p>
+              <div class="mini-panel priority-preview" aria-hidden="true">
+                <span>Recommended next <b>Score 94</b></span>
+                <strong>Algorithmic Problem Set #3</strong>
+                <small><span>◷ ~2h needed</span><i></i><b>Due in 18 hrs</b></small>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section why-section">
+        <div class="landing-content narrow">
+          <div class="section-heading">
+            <h2>Why StudyFlow?</h2>
+            <p>A long to-do list doesn't tell you what to do first.</p>
+          </div>
+          <div class="comparison-grid">
+            <article class="comparison-card traditional">
+              <h3><span></span>Traditional To-Do List</h3>
+              <ul><li>Task A</li><li>Task B</li><li>Task C</li><li>Task D</li></ul>
+              <p>Everything looks equally important.</p>
+            </article>
+            <article class="comparison-card studyflow">
+              <h3><span></span>StudyFlow</h3>
+              <div class="recommendation">
+                <div><b>🔥 Finish DL Lab</b><strong>Priority 76</strong></div>
+                <p><span>Due tomorrow</span><span>~3h remaining</span></p>
+              </div>
+              <p>StudyFlow helps you understand what needs your attention first.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="landing-section about-section">
+        <div class="landing-content narrow">
+          <div class="section-heading about-copy">
+            <h2>About StudyFlow</h2>
+            <p>StudyFlow is a study planning web application designed to help students manage courses, tasks, deadlines, and study progress in one place.</p>
+            <p>Instead of simply storing a list of tasks, StudyFlow uses deadlines, task importance, progress, and workload to help students understand what needs their attention first.</p>
+          </div>
+          <div class="concept-grid">
+            <article class="landing-card"><span>01 | Organize</span><h3>Organize</h3><p>Keep courses and tasks in one place.</p></article>
+            <article class="landing-card"><span>02 | Understand</span><h3>Understand</h3><p>See your progress and remaining workload.</p></article>
+            <article class="landing-card"><span>03 | Focus</span><h3>Focus</h3><p>Know what to work on next.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section cta-section">
+        <div class="landing-content narrow">
+          <div class="cta-card">
+            <h2>Ready to make your study plan clearer?</h2>
+            <p>Organize your courses. Track your progress. Know what to work on next.</p>
+            <a class="btn btn-primary" href="#authCard" data-auth-target="register" data-auth-scroll>Get Started</a>
+          </div>
+        </div>
       </section>
     </main>
+    <footer class="site-footer">
+      <div class="landing-content footer-inner">
+        <a class="footer-brand" href="index.html">Study<span>Flow</span></a>
+        <nav aria-label="Footer navigation"><a href="#features">Features</a><a href="#about">About</a></nav>
+        <p>© 2026 StudyFlow. All rights reserved.</p>
+      </div>
+    </footer>
     <script type="module" src="../js/app.js?v=3"></script>
   </body>
 </html>
