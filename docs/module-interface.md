@@ -118,14 +118,14 @@ Calculates derived task values, ranks incomplete tasks, provides the next-task r
 
 | Function | Parameters | Expected return | Responsibility |
 | --- | --- | --- | --- |
-| `getUrgencyScore(deadline)` | `deadline: string \| Date` | `number` | Calculate urgency from time until the deadline. |
-| `getImportanceScore(importance)` | `importance: string` | `number` | Convert an importance level into its numeric score. |
+| `calculateUrgencyScore(deadline)` | `deadline: string \| Date` | `number` | Calculate urgency from time until the deadline. |
+| `calculateImportanceScore(importance)` | `importance: string` | `number` | Convert an importance level into its numeric score. |
 | `calculateRemainingWorkload(estimatedDuration, currentProgress)` | `number \| null`, `number` | `number` | Use `estimatedDuration`, or a 3-hour effective duration when it is `null`, to calculate remaining work. |
-| `getWorkloadScore(remainingWorkload)` | `remainingWorkload: number` | `number` | Convert remaining workload into its numeric score. |
+| `calculateWorkloadScore(remainingWorkload)` | `remainingWorkload: number` | `number` | Convert remaining workload into its numeric score. |
 | `calculatePriorityScore(task)` | `task: Task` | `number` | Calculate `0.5 * urgency + 0.3 * importance + 0.2 * workload`. |
 | `rankTasks(tasks)` | `tasks: Task[]` | `Task[]` | Exclude completed tasks and return the rest in ranking order without storing calculated values. |
-| `getGlobalRec(studentId)` | `studentId: string` | `Task \| null` | Return the highest-ranked incomplete task across all of the student's courses. |
-| `getLocalRec(courseId)` | `courseId: string` | `Task \| null` | Return the highest-ranked incomplete task within one course. |
+| `getGlobalRecommendation(studentId)` | `studentId: string` | `Task \| null` | Return the highest-ranked incomplete task across all of the student's courses. |
+| `getLocalRecommendation(courseId)` | `courseId: string` | `Task \| null` | Return the highest-ranked incomplete task within one course. |
 | `getWorkloadWarning(tasks)` | `tasks: Task[]` | `Task[]` | Return non-completed, non-overdue tasks that meet the workload-warning rule and have a user-provided duration. |
 
 ### Ranking order
