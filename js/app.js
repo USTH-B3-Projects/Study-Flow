@@ -52,7 +52,7 @@ function taskForm(task = {}) {
   return `<form class="modal-form"><div class="task-modal-grid"><div class="form-field wide"><label>Task name</label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish lab report"></div><div class="form-field wide"><label>Description</label><textarea class="textarea" name="description" placeholder="Optional details">${esc(task.description)}</textarea></div><div class="form-field"><label>Deadline</label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field"><label>Importance</label><select class="select" name="importance">${["very-low", "low", "medium", "high", "very-high"].map((x) => `<option ${x === (task.importance || "medium") ? "selected" : ""} value="${x}">${x.replace("-", " ")}</option>`).join("")}</select></div><div class="form-field"><label>Estimated duration (hours)</label><input class="input" name="estimatedDuration" type="number" min="0.25" step="0.25" value="${task.estimatedDuration ?? ""}" placeholder="Optional"></div><div class="form-field"><label>Progress</label><select class="select" name="currentProgress">${[0, 25, 50, 75, 100].map((x) => `<option ${x === Number(task.currentProgress || 0) ? "selected" : ""} value="${x}">${x}%</option>`).join("")}</select></div></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save task</button></div></form>`;
 }
 function courseForm(course = {}) {
-  return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="name" required value="${esc(course.name)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
+  return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="courseName" required value="${esc(course.courseName)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
 }
 function wireAuth() {
   document.querySelectorAll("#loginForm, #registerForm, #forgotForm").forEach((form) =>
@@ -132,9 +132,9 @@ function initDashboard() {
   const u = initShell();
   if (!u) return;
   const name = u.name || u.studentId,
-    courses = courseService.list(u.studentId),
-    tasks = taskService.allForStudent(u.studentId),
-    ranked = smartService.rank(tasks);
+    courses = courseService.getCoursesByStudentId(u.studentId),
+    tasks = taskService.getTasksByStudentId(u.studentId) ?? [],
+    ranked = smartService.rankTasks(tasks) ?? [];
   $("#greeting").textContent = `Good morning, ${name}`;
   const completed = tasks.filter(
       (t) => Number(t.currentProgress) === 100,
@@ -157,17 +157,17 @@ function initDashboard() {
                     ts.length,
                 )
               : 0,
-            next = smartService.rank(ts)[0];
-          return `<a class="card course-card" style="--course-color:${c.color || "var(--blue)"}" href="course.html?courseId=${encodeURIComponent(c.courseId)}"><div class="course-top"><div class="course-dot" style="background:${c.color || "#e9f2ff"}22;color:${c.color || "var(--blue)"}">${esc(c.name.slice(0, 1).toUpperCase())}</div><div><h3>${esc(c.name)}</h3><p>${ts.length} ${ts.length === 1 ? "task" : "tasks"}</p></div><span class="course-link" style="margin-left:auto">View course &rarr;</span></div><div class="progress" aria-label="${pct}% complete"><span style="width:${pct}%;background:${c.color || "var(--blue)"}"></span></div><div class="course-meta"><strong>${pct}% complete</strong><span>${done} completed · ${ts.length - done} remaining</span></div><div class="course-meta"><span>${next ? `Next: ${dueLabel(next.deadline)}` : "No pending tasks"}</span></div></a>`;
+            next = smartService.rankTasks(ts)?.[0];
+          return `<a class="card course-card" style="--course-color:${c.color || "var(--blue)"}" href="course.html?courseId=${encodeURIComponent(c.courseId)}"><div class="course-top"><div class="course-dot" style="background:${c.color || "#e9f2ff"}22;color:${c.color || "var(--blue)"}">${esc(c.courseName.slice(0, 1).toUpperCase())}</div><div><h3>${esc(c.courseName)}</h3><p>${ts.length} ${ts.length === 1 ? "task" : "tasks"}</p></div><span class="course-link" style="margin-left:auto">View course &rarr;</span></div><div class="progress" aria-label="${pct}% complete"><span style="width:${pct}%;background:${c.color || "var(--blue)"}"></span></div><div class="course-meta"><strong>${pct}% complete</strong><span>${done} completed · ${ts.length - done} remaining</span></div><div class="course-meta"><span>${next ? `Next: ${dueLabel(next.deadline)}` : "No pending tasks"}</span></div></a>`;
         })
         .join("")
     : `<div class="empty" style="grid-column:1/-1"><h3>No courses yet</h3><p>Start by creating your first course.</p><button class="btn btn-primary" data-add-course>+ Add course</button></div>`;
   const addCourse = () =>
     modal("Add course", courseForm(), (d, close) => {
       try {
-        courseService.create({
+        courseService.createCourse({
           studentId: u.studentId,
-          name: d.get("name"),
+          courseName: d.get("courseName"),
           color: d.get("color"),
         });
         close();
@@ -186,7 +186,7 @@ function initDashboard() {
       ? ranked
           .map((t, i) => {
             const c = courses.find((x) => x.courseId === t.courseId);
-            return `<article class="recommend"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending">Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.name || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div></div><a class="btn ${i === 0 ? "btn-primary" : "btn-outline"}" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View task</a></article>`;
+            return `<article class="recommend"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending">Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.courseName || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div></div><a class="btn ${i === 0 ? "btn-primary" : "btn-outline"}" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View task</a></article>`;
           })
           .join("")
       : `<div class="empty">No pending tasks. You are caught up.</div>`;
@@ -203,7 +203,7 @@ function initCourse() {
   const u = initShell();
   if (!u) return;
   const courseId = new URLSearchParams(location.search).get("courseId"),
-    course = courseService.get(courseId);
+    course = courseService.getCourseById(courseId);
   if (!course || course.studentId !== u.studentId) {
     location.href = "dashboard.html";
     return;
@@ -225,7 +225,7 @@ function initCourse() {
         )
       : 0;
     $("#courseHero").innerHTML =
-      `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.name.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.name)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
+      `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.courseName)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
     $("#courseStats").innerHTML =
       `<article class="card course-stat"><span>Pending</span><strong>${counts.pending}</strong></article><article class="card course-stat"><span>Completed</span><strong style="color:var(--green)">${counts.completed}</strong></article><article class="card course-stat"><span>Overdue</span><strong style="color:var(--red)">${counts.overdue}</strong></article>`;
     $("#filters").innerHTML = [
@@ -318,8 +318,8 @@ function initCourse() {
       });
     $("#editCourse").onclick = () =>
       modal("Edit course", courseForm(course), (d, close) => {
-        courseService.update(courseId, {
-          name: d.get("name"),
+        courseService.updateCourse(courseId, {
+          courseName: d.get("courseName"),
           color: d.get("color"),
         });
         close();
@@ -327,7 +327,7 @@ function initCourse() {
       });
     $("#deleteCourse").onclick = () => {
       if (confirm("Delete course and all its tasks?")) {
-        courseService.remove(courseId);
+        courseService.deleteCourse(courseId);
         location.href = "dashboard.html";
       }
     };
