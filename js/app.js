@@ -20,6 +20,14 @@ const fmtDate = (d) =>
   new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
     new Date(d),
   );
+const fmtDateTime = (d) =>
+  new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(d));
 const dueLabel = (d) => {
   const ms = new Date(d) - new Date(),
     days = Math.ceil(ms / 86400000);
@@ -37,9 +45,19 @@ const toast = (msg) => {
 };
 function modal(title, body, onSubmit) {
   const root = $("#modalRoot");
-  root.innerHTML = `<div class="modal-backdrop open"><div class="modal card"><h2>${title}</h2>${body}</div></div>`;
+  const isTask = body.includes("task-modal-form");
+  root.innerHTML = `<div class="modal-backdrop open"><div class="modal card ${isTask ? "task-modal" : ""}">${isTask ? `<header class="task-modal-header"><div><h2><span aria-hidden="true">+</span>${title === "Add task" ? "Create a new task" : title}</h2><p>${title === "Add task" ? "Add the details below to plan your task." : "Update the details for this task."}</p></div><button type="button" class="task-modal-close" data-close aria-label="Close modal">&times;</button></header>` : `<h2>${title}</h2>`}${body}</div></div>`;
   const close = () => (root.innerHTML = "");
-  root.querySelector("[data-close]")?.addEventListener("click", close);
+  root.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", close));
+  const duration = root.querySelector("[data-duration-select]");
+  const customDuration = root.querySelector("[data-custom-duration]");
+  duration?.addEventListener("change", () => {
+    const custom = duration.value === "custom";
+    customDuration.hidden = !custom;
+    customDuration.required = custom;
+    if (!custom) customDuration.value = duration.value;
+    if (custom) customDuration.focus();
+  });
   root.querySelector("form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     onSubmit(new FormData(e.target), close);
@@ -49,7 +67,11 @@ function modal(title, body, onSubmit) {
   });
 }
 function taskForm(task = {}) {
-  return `<form class="modal-form"><div class="task-modal-grid"><div class="form-field wide"><label>Task name</label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish lab report"></div><div class="form-field wide"><label>Description</label><textarea class="textarea" name="description" placeholder="Optional details">${esc(task.description)}</textarea></div><div class="form-field"><label>Deadline</label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field"><label>Importance</label><select class="select" name="importance">${["very-low", "low", "medium", "high", "very-high"].map((x) => `<option ${x === (task.importance || "medium") ? "selected" : ""} value="${x}">${x.replace("-", " ")}</option>`).join("")}</select></div><div class="form-field"><label>Estimated duration (hours)</label><input class="input" name="estimatedDuration" type="number" min="0.25" step="0.25" value="${task.estimatedDuration ?? ""}" placeholder="Optional"></div><div class="form-field"><label>Progress</label><select class="select" name="currentProgress">${[0, 25, 50, 75, 100].map((x) => `<option ${x === Number(task.currentProgress || 0) ? "selected" : ""} value="${x}">${x}%</option>`).join("")}</select></div></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save task</button></div></form>`;
+  const duration = task.estimatedDuration ?? "";
+  const presets = ["", ".25", ".5", "1", "2", "3", "4", "5", "6", "8"];
+  const custom = duration !== "" && !presets.includes(String(duration));
+  const segments = (name, values, selected, labels = values) => `<div class="segment-control">${values.map((value, i) => `<label><input type="radio" name="${name}" value="${value}" ${String(value) === String(selected) ? "checked" : ""}><span>${labels[i]}</span></label>`).join("")}</div>`;
+  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Description</label><small>Optional</small></div><textarea class="textarea" name="description" rows="2" placeholder="Add some details...">${esc(task.description)}</textarea></div></section><section class="planning"><div class="section-heading"><strong>Planning &amp; Prioritization</strong><small>Schedule &amp; effort</small></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (3h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; defaults to 3 hours</small></div></div><div class="form-field"><div class="field-label"><label>Importance <b>*</b></label><small>Impact on schedule</small></div>${segments("importance", ["very-low", "low", "medium", "high", "very-high"], task.importance || "medium", ["Very low", "Low", "Medium", "High", "Very high"])}</div><div class="form-field"><div class="field-label"><label>Progress</label><small>Current status</small></div>${segments("currentProgress", [0, 25, 50, 75, 100], Number(task.currentProgress || 0), ["0%", "25%", "50%", "75%", "100%"])}</div></section><aside class="studyflow-hint"><b aria-hidden="true">✦</b><span><strong>StudyFlow</strong> uses these details to calculate task priority and recommend what you should work on next.</span></aside></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
 }
 function courseForm(course = {}) {
   return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="courseName" required value="${esc(course.courseName)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
@@ -255,7 +277,7 @@ function initCourse() {
       ? list
           .map(
             (t) =>
-              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div><div class="task-name">${esc(t.name)}</div><div class="task-sub">${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : `<span class="status ${t.completionStatus}">${t.completionStatus === "completed" ? "Completed" : "In progress"}</span>`}</div></div><div class="task-detail"><span class="task-label">Deadline</span><strong>${dueLabel(t.deadline)}</strong>${fmtDate(t.deadline)}</div><div class="task-detail"><span class="task-label">Importance</span><strong>${t.importance.replace("-", " ")}</strong></div><div class="task-detail"><span class="task-label">Progress</span><div class="inline-progress"><div class="progress"><span style="width:${t.currentProgress}%"></span></div><small>${t.currentProgress}%</small></div></div><div class="task-detail"><span class="task-label">Priority</span><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong>${t.estimatedDuration == null ? "Duration not estimated" : `${t.remainingWorkload.toFixed(1)}h remaining`}</div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div></article>`,
+              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}" tabindex="0" aria-expanded="false"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(t.name)}</div><div class="task-sub"><span>${t.isOverdue ? "Overdue" : t.hasWorkloadWarning ? "Workload warning" : t.completionStatus === "completed" ? "Completed" : "In progress"}</span><i aria-hidden="true">&middot;</i><span>${dueLabel(t.deadline)}</span><span class="task-progress">${t.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong></div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div><aside class="task-preview"><small>Task details</small><strong>${esc(t.name)}</strong><p>${esc(t.description) || "No description provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Duration</dt><dd>${t.estimatedDuration == null ? "Not estimated (3h default)" : `${t.estimatedDuration}h`}</dd></div><div><dt>Remaining</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Priority</dt><dd>${Math.round(t.priorityScore)}</dd></div></dl>${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}</aside></article>`,
           )
           .join("")
       : `<div class="empty"><h3>${filter === "all" ? "No tasks yet" : "No matching tasks"}</h3><p>${filter === "all" ? "Add your first task to start tracking this course." : "Try another filter."}</p></div>`;
@@ -301,6 +323,24 @@ function initCourse() {
           });
         }),
     );
+    document.querySelectorAll(".task-row").forEach((row) => {
+      row.onclick = (event) => {
+        if (event.target.closest("button")) return;
+        const open = !row.classList.contains("details-open");
+        document.querySelectorAll(".task-row.details-open").forEach((item) => {
+          item.classList.remove("details-open");
+          item.setAttribute("aria-expanded", "false");
+        });
+        row.classList.toggle("details-open", open);
+        row.setAttribute("aria-expanded", String(open));
+      };
+      row.onkeydown = (event) => {
+        if ((event.key === "Enter" || event.key === " ") && event.target === row) {
+          event.preventDefault();
+          row.click();
+        }
+      };
+    });
     $("#sortSelect").value = sort;
     $("#sortSelect").onchange = (e) => {
       sort = e.target.value;

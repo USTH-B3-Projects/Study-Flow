@@ -300,6 +300,48 @@
   gap: 10px;
   margin-top: 5px;
 }
+.task-modal {
+  width: min(580px, 100%);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(7, 25, 67, 0.24);
+}
+.task-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid #edf1f7;
+}
+.task-modal-header h2 { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 20px; }
+.task-modal-header h2 span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: #eef8ff; color: #0795df; font-weight: 500; }
+.task-modal-header p { margin: 3px 0 0; color: #71809d; font-size: 13px; }
+.task-modal-close { padding: 0; background: transparent; color: #93a4bf; font-size: 25px; line-height: 1; }
+.task-modal-form { gap: 0; max-height: calc(100vh - 36px - 92px); overflow-y: auto; }
+.task-modal-body { display: grid; gap: 22px; padding: 24px 26px 20px; }
+.task-details, .planning { display: grid; gap: 16px; }
+.planning { padding-top: 20px; border-top: 1px solid #edf1f7; }
+.section-heading, .field-label { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.section-heading strong { max-width: 145px; color: #93a4bf; font-size: 12px; line-height: 1.25; letter-spacing: .05em; text-transform: uppercase; }
+.section-heading small, .field-label small, .duration-field > small { color: #93a4bf; font-size: 11px; }
+.task-modal .form-field { gap: 6px; }
+.task-modal .form-field label { color: #34415c; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.task-modal .form-field label b { color: #058fd6; }
+.task-modal .input, .task-modal .select, .task-modal .textarea { min-height: 42px; border-color: #d9e2ef; border-radius: 11px; color: #1c2942; font-size: 14px; }
+.task-modal .textarea { min-height: 56px; resize: none; }
+.planning-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.custom-duration { margin-top: 2px; }
+.segment-control { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 4px; border: 1px solid #dde5ef; border-radius: 11px; background: #f0f4f8; }
+.segment-control label { min-width: 0; }
+.segment-control input { position: absolute; opacity: 0; pointer-events: none; }
+.segment-control span { display: block; padding: 6px 3px; overflow: hidden; border: 1px solid transparent; border-radius: 8px; color: #52617a; font-size: 12px; text-align: center; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.segment-control input:checked + span { border-color: #e2e7ee; background: #fff; color: #0074ba; font-weight: 600; box-shadow: 0 1px 3px rgba(30, 50, 80, .08); }
+.segment-control input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 1px; }
+.studyflow-hint { display: flex; gap: 10px; padding: 11px 13px; border: 1px solid #cceafb; border-radius: 11px; background: #f0faff; color: #576984; font-size: 12px; }
+.studyflow-hint > b, .studyflow-hint strong { color: #087bbd; }
+.task-modal .modal-actions { margin: 0; padding: 14px 26px; border-top: 1px solid #edf1f7; background: #f8fafc; }
+.task-modal .modal-actions .btn { min-height: 40px; border-radius: 10px; font-size: 13px; }
 @media (max-width: 860px) {
   .course-grid {
     grid-template-columns: 1fr 1fr;
@@ -349,4 +391,11 @@
     grid-column: 2;
     justify-self: start;
   }
+  .modal-backdrop { align-items: end; padding: 8px; }
+  .task-modal-form { max-height: calc(100vh - 90px); }
+  .task-modal-header, .task-modal-body { padding-left: 18px; padding-right: 18px; }
+  .planning-grid { grid-template-columns: 1fr; }
+  .segment-control span { font-size: 10px; }
+  .task-modal .modal-actions { padding: 12px 18px; }
+  .task-modal .modal-actions .btn { flex: 1; padding: 0 12px; }
 }
