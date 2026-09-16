@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../css/auth.css?v=3" />
   </head> 
   <body data-page="landing">
+    <!-- HEADER: logo, menu Features/About, nút mở form đăng nhập/đăng ký -->
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="index.html"
@@ -28,6 +29,7 @@
       </div>
     </header>
     <main class="container landing-container page-enter">
+      <!-- INDEX / HERO: giới thiệu StudyFlow và khu vực xác thực tài khoản -->
       <section class="auth-shell landing-shell">
         <div class="hero-left">
           <div class="auth-copy">
@@ -48,11 +50,13 @@
             alt="Student thinking while studying"
           />
         </div>
+        <!-- AUTH: chuyển đổi giữa Login, Forgot Password và Register -->
         <div class="card auth-panel" id="authCard">
           <div class="tabs" role="tablist" aria-label="Authentication">
             <button class="tab active" type="button" role="tab" aria-selected="true" data-auth-target="login">Log in</button
             ><button class="tab" type="button" role="tab" aria-selected="false" data-auth-target="register">Register</button>
           </div>
+          <!-- LOGIN: đăng nhập bằng username và password -->
           <form id="loginForm" class="auth-form">
             <h2>Log in</h2>
             <div class="form-field">
@@ -70,6 +74,7 @@
               New to StudyFlow? <a href="#authCard" data-auth-target="register">Create account</a>
             </div>
           </form>
+          <!-- FORGOT PASSWORD: đặt lại mật khẩu theo username -->
           <form id="forgotForm" class="auth-form" hidden>
             <h2>Reset password</h2>
             <div class="form-field">
@@ -86,6 +91,7 @@
               Remember your password? <a href="#authCard" data-auth-target="login">Log in</a>
             </div>
           </form>
+          <!-- REGISTER: tạo tài khoản mới -->
           <form id="registerForm" class="auth-form" hidden>
             <h2>Create account</h2>
             <div class="form-field">
@@ -112,6 +118,8 @@
           </form>
         </div>
       </section>
+
+      <!-- FEATURES: 4 ô giới thiệu Course, Task, Progress và Smart Priority -->
       <section id="features" class="landing-section features-section">
         <div class="landing-content">
           <div class="section-heading">
@@ -164,6 +172,7 @@
         </div>
       </section>
 
+      <!-- COMPARISON: so sánh to-do list thông thường với StudyFlow -->
       <section class="landing-section why-section">
         <div class="landing-content narrow">
           <div class="section-heading">
@@ -188,6 +197,7 @@
         </div>
       </section>
 
+      <!-- ABOUT: mô tả ứng dụng và 3 giá trị Organize, Understand, Focus -->
       <section id="about" class="landing-section about-section">
         <div class="landing-content narrow">
           <div class="section-heading about-copy">
@@ -203,6 +213,7 @@
         </div>
       </section>
 
+      <!-- CTA: kêu gọi người dùng mở form đăng ký -->
       <section class="landing-section cta-section">
         <div class="landing-content narrow">
           <div class="cta-card">
@@ -213,6 +224,7 @@
         </div>
       </section>
     </main>
+    <!-- FOOTER: thương hiệu, liên kết nhanh và bản quyền -->
     <footer class="site-footer">
       <div class="landing-content footer-inner">
         <a class="footer-brand" href="index.html">Study<span>Flow</span></a>
