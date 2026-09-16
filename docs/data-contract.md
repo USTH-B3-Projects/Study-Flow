@@ -22,12 +22,15 @@ values, and relationships defined in this document.
 
 <b>Register Input</b>
 
-| Field | Type | Required | Default | Description |
-|---|---|---:|---|---|
-| studentId | String | Yes | null | Unique student identifier and login ID |
-| studentName | String | Yes | null | Student's display name |
-| email | String | Yes | null | Student's email address |
-| password | String | Yes | null | Password for prototype authentication |
+| Field | Type | Required | Default | Stored? | Description |
+|---|---|---:|---|---|---|
+| studentName | String | Yes | null | Yes | Student's display name |
+| studentId | String | Yes | null | Yes | Unique login identifier |
+| password | String | Yes | null | Yes | Password for prototype authentication |
+| confirmPassword | String | Yes | null | No | Must match `password` |
+
+After successful registration, the system generates a recovery code.
+The original recovery code is shown to the student once and is not stored directly.
 
 <b>Login Input</b>
 | Field | Type | Required | Description |
@@ -35,19 +38,42 @@ values, and relationships defined in this document.
 | studentId | String | Yes | Student ID used for login |
 | password | String | Yes | Account password |
 
+<b>Reset Password Input</b>
+| Field | Type | Required | Stored? | Description |
+|---|---|---:|---|---|
+| studentId | String | Yes | No | Identifies the account |
+| recoveryCode | String | Yes | No | Code provided after registration |
+| newPassword | String | Yes | Yes | Replaces the current password after successful validation |
+| confirmPassword | String | Yes | No | Must match `newPassword` |
+
+<b>Stored Student Data</b>
+| Field | Type | Required | Default | Description |
+|---|---|---:|---|---|
+| studentName | String | Yes | null | Student's display name |
+| studentId | String | Yes | null | Unique identifier used for login |
+| password | String | Yes | null | Password for prototype authentication |
+| recoveryCodeHash | String | Yes | Generated | Hashed version of the recovery code |
+
 ### Account Validation
 
 - `studentId` must not be empty, must be unique, must be trimmed before being stored
 - `studentName` must not be empty, must be trimmed before being stored.
-- `email` must have a valid email format, must be unique, must be trimmed and converted to lowercase.
-- `password` must meet the minimum length selected by the team.
+- `password` must meet the minimum length of 8 characters.
+- `confirmPassword` must match `password` and must not be stored.
+- `recoveryCode` must not be stored directly.
+- `recoveryCodeHash` is generated and stored after successful registration.
+- Resetting a password requires both a valid `studentId` and a valid `recoveryCode`.
+- `newPassword` must meet the password requirements.
+- The recovery code must be regenerated after a successful password reset.
 
 <!--
+Stored Student example:
+
 {
-  "studentId": "1023",
   "studentName": "John Doe",
-  "email": "john.doe@example.com",
-  "password": "demo-password"
+  "studentId": "1023",
+  "password": "demo-password",
+  "recoveryCodeHash": "hashed-recovery-code"
 }
 -->
 
@@ -185,7 +211,7 @@ values, and relationships defined in this document.
 
 ## 7. Derived Task Values
 
-The following values are calculated by PriorityService.
+The following values are calculated by `smartService.js`.
 They are not entered directly by the user.
 
 | Field | Type | Stored? | Description |
@@ -273,7 +299,7 @@ Initial data:
 
 ## 11. Recommended Task View
 
-PriorityService combines stored Task data with calculated values.
+`smartService.js` combines stored Task data with calculated values.
 
 ### Recommendation Sorting
 
