@@ -17,22 +17,22 @@ function getAllTasks() {
 export function createTask(taskData) {
   const name = (taskData.name || "").trim();
   if (!name) {
-    throw new Error("Tên task không được để trống.");
+    throw new Error("Task name is NOT empty.");
   }
 
   const course = getCourseById(taskData.courseId);
   if (!course) {
-    throw new Error("courseId không tồn tại.");
+    throw new Error("courseId does NOT exist.");
   }
 
   if (!taskData.deadline || isNaN(new Date(taskData.deadline).getTime())) {
-    throw new Error("Deadline không hợp lệ.");
+    throw new Error("Deadline is invalid.");
   }
 
   let estimatedDuration = null;
   if (taskData.estimatedDuration !== undefined && taskData.estimatedDuration !== null) {
     if (taskData.estimatedDuration <= 0) {
-      throw new Error("estimatedDuration phải lớn hơn 0.");
+      throw new Error("estimatedDuration must larger than 0.");
     }
     estimatedDuration = taskData.estimatedDuration;
   }
@@ -40,7 +40,7 @@ export function createTask(taskData) {
   let currentProgress = 0;
   if (taskData.currentProgress !== undefined) {
     if (!VALID_PROGRESS_VALUES.includes(taskData.currentProgress)) {
-      throw new Error("currentProgress phải là một trong: 0, 25, 50, 75, 100.");
+      throw new Error("currentProgress must be: 0, 25, 50, 75, 100.");
     }
     currentProgress = taskData.currentProgress;
   }
@@ -113,7 +113,7 @@ export function updateTask(taskId, data) {
   if (updatedTask.name) {
     updatedTask.name = updatedTask.name.trim();
     if (!updatedTask.name) {
-      throw new Error("Tên task không được để trống.");
+      throw new Error("Task name is NOT empty.");
     }
   }
 
@@ -139,7 +139,7 @@ export function deleteTask(taskId) {
 
 export function updateTaskProgress(taskId, currentProgress) {
   if (!VALID_PROGRESS_VALUES.includes(currentProgress)) {
-    throw new Error("currentProgress phải là một trong: 0, 25, 50, 75, 100.");
+    throw new Error("currentProgress must be: 0, 25, 50, 75, 100.");
   }
 
   const tasks = getAllTasks();
