@@ -58,6 +58,13 @@ function modal(title, body, onSubmit) {
     if (!custom) customDuration.value = duration.value;
     if (custom) customDuration.focus();
   });
+  root.querySelectorAll("[data-range]").forEach((input) => {
+    const output = root.querySelector(`[data-range-output="${input.name}"]`);
+    const labels = input.dataset.labels?.split("|");
+    const update = () => (output.textContent = labels?.[input.value] ?? `${input.value}%`);
+    input.addEventListener("input", update);
+    update();
+  });
   root.querySelector("form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     onSubmit(new FormData(e.target), close);
@@ -70,8 +77,109 @@ function taskForm(task = {}) {
   const duration = task.estimatedDuration ?? "";
   const presets = ["", ".25", ".5", "1", "2", "3", "4", "5", "6", "8"];
   const custom = duration !== "" && !presets.includes(String(duration));
-  const segments = (name, values, selected, labels = values) => `<div class="segment-control">${values.map((value, i) => `<label><input type="radio" name="${name}" value="${value}" ${String(value) === String(selected) ? "checked" : ""}><span>${labels[i]}</span></label>`).join("")}</div>`;
-  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Description</label><small>Optional</small></div><textarea class="textarea" name="description" rows="2" placeholder="Add some details...">${esc(task.description)}</textarea></div></section><section class="planning"><div class="section-heading"><strong>Planning &amp; Prioritization</strong><small>Schedule &amp; effort</small></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (3h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; defaults to 3 hours</small></div></div><div class="form-field"><div class="field-label"><label>Importance <b>*</b></label><small>Impact on schedule</small></div>${segments("importance", ["very-low", "low", "medium", "high", "very-high"], task.importance || "medium", ["Very low", "Low", "Medium", "High", "Very high"])}</div><div class="form-field"><div class="field-label"><label>Progress</label><small>Current status</small></div>${segments("currentProgress", [0, 25, 50, 75, 100], Number(task.currentProgress || 0), ["0%", "25%", "50%", "75%", "100%"])}</div></section><aside class="studyflow-hint"><b aria-hidden="true">✦</b><span><strong>StudyFlow</strong> uses these details to calculate task priority and recommend what you should work on next.</span></aside></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
+  const importance = ["very-low", "low", "medium", "high", "very-high"];
+  const importanceIndex = Math.max(0, importance.indexOf(task.importance || "medium"));
+  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="2" placeholder="Add a note...">${esc(task.description)}</textarea></div></section><section class="planning"><div class="section-heading"><strong>Planning &amp; Prioritization</strong><small>Schedule &amp; effort</small></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (2h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; defaults to 2 hours</small></div></div><div class="form-field range-field"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very low|Low|Medium|High|Very high"><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></section><aside class="studyflow-hint"><b aria-hidden="true">&#10022;</b><span><strong>StudyFlow</strong> uses these details to calculate task priority and recommend what you should work on next.</span></aside></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
+}
+function taskData(formData) {
+  const data = Object.fromEntries(formData);
+  if (data.importanceIndex !== undefined) {
+    data.importance = ["very-low", "low", "medium", "high", "very-high"][data.importanceIndex];
+    delete data.importanceIndex;
+  }
+  return data;
+}
+function taskDetails(t) {
+  return `<div class="task-details-panel"><p>${esc(t.description) || "No note provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Effective duration</dt><dd>${t.effectiveDuration}h${t.estimatedDuration == null ? " (default)" : ""}</dd></div><div><dt>Remaining workload</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Workload score</dt><dd>${t.workloadScore}</dd></div><div><dt>Priority score</dt><dd>${Math.round(t.priorityScore)}</dd></div></dl></div>`;
+}
+function warningList(tasks) {
+  return tasks.length ? `<div class="card warning-banner warning-list"><div class="warning-heading"><div class="warning-icon" aria-hidden="true">!</div><div><h3>Workload Warning</h3><p>${tasks.length} ${tasks.length === 1 ? "task needs" : "tasks need"} attention</p></div></div>${tasks.map((t) => `<article class="warning-task" tabindex="0" role="button" aria-expanded="false"><strong>${esc(t.name)}</strong><span class="status ${t.isOverdue ? "overdue" : "warning"}">${t.isOverdue ? "OVERDUE" : "High workload"}</span><small>${dueLabel(t.deadline)} &middot; ${t.remainingWorkload.toFixed(1)}h remaining</small>${taskDetails(t)}</article>`).join("")}</div>` : "";
+}
+function wireExpandable(selector) {
+  document.querySelectorAll(selector).forEach((item) => {
+    const toggle = (event) => {
+      if (event?.target.closest("button, a")) return;
+      if (item.dataset.justDragged) return;
+      const open = !item.classList.contains("details-open");
+      item.classList.toggle("details-open", open);
+      item.setAttribute("aria-expanded", String(open));
+    };
+    item.onclick = toggle;
+    item.onkeydown = (event) => {
+      if ((event.key === "Enter" || event.key === " ") && event.target === item) {
+        event.preventDefault(); toggle(event);
+      }
+    };
+  });
+}
+function wireRecommendationSort(list, ranked) {
+  let drag = null;
+  const animate = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const syncOrderUI = () => {
+    list.querySelectorAll(".rank").forEach((rank, index) => (rank.textContent = index + 1));
+    list.querySelector("[data-recommended]")?.remove();
+    list.querySelector("[data-task-id] > div:nth-child(2)")?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
+  };
+  const movePlaceholder = (before) => {
+    const cards = [...list.querySelectorAll("[data-task-id]:not(.dragging)")];
+    const beforeRects = new Map(cards.map((card) => [card, card.getBoundingClientRect()]));
+    before ? list.insertBefore(drag.placeholder, before) : list.append(drag.placeholder);
+    cards.forEach((card) => {
+      const previous = beforeRects.get(card);
+      const current = card.getBoundingClientRect();
+      const delta = previous.top - current.top;
+      if (delta && animate) card.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], { duration: 160, easing: "ease-out" });
+    });
+  };
+  list.querySelectorAll("[data-task-id]").forEach((item) => {
+    item.onpointerdown = (event) => {
+      if (event.button !== 0 || event.target.closest("a, button")) return;
+      const rect = item.getBoundingClientRect();
+      drag = { item, startX: event.clientX, startY: event.clientY, offsetY: event.clientY - rect.top, rect, active: false };
+      item.setPointerCapture(event.pointerId);
+    };
+    item.onpointermove = (event) => {
+      if (!drag || drag.item !== item) return;
+      if (!drag.active && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 6) return;
+      if (!drag.active) {
+        drag.active = true;
+        drag.originalIds = [...list.querySelectorAll("[data-task-id]")].map((card) => card.dataset.taskId);
+        drag.placeholder = document.createElement("div");
+        drag.placeholder.className = "drop-indicator";
+        drag.placeholder.style.height = `${drag.rect.height}px`;
+        drag.placeholder.innerHTML = "<span>Drop here</span>";
+        item.before(drag.placeholder);
+        Object.assign(item.style, { position: "fixed", zIndex: 30, left: `${drag.rect.left}px`, top: `${drag.rect.top}px`, width: `${drag.rect.width}px` });
+        item.classList.add("dragging");
+      }
+      event.preventDefault();
+      item.style.top = `${event.clientY - drag.offsetY}px`;
+      const target = [...list.querySelectorAll("[data-task-id]:not(.dragging)")].find((card) => {
+        const rect = card.getBoundingClientRect();
+        return event.clientY < rect.top + rect.height / 2;
+      });
+      movePlaceholder(target);
+    };
+    item.onpointerup = item.onpointercancel = () => {
+      if (!drag || drag.item !== item) return;
+      if (drag.active) {
+        drag.placeholder.before(item);
+        drag.placeholder.remove();
+        item.classList.remove("dragging");
+        item.removeAttribute("style");
+        if (animate) item.animate([{ transform: "scale(.985)" }, { transform: "none" }], { duration: 140, easing: "ease-out" });
+        const ids = [...list.querySelectorAll("[data-task-id]")].map((card) => card.dataset.taskId);
+        if (ids.some((id, index) => id !== drag.originalIds[index])) {
+          taskService.updateDisplayOrder(ids);
+          ranked.sort((a, b) => ids.indexOf(a.taskId) - ids.indexOf(b.taskId));
+        }
+        syncOrderUI();
+        item.dataset.justDragged = "true";
+        setTimeout(() => delete item.dataset.justDragged, 0);
+      }
+      drag = null;
+    };
+  });
 }
 function courseForm(course = {}) {
   return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="courseName" required value="${esc(course.courseName)}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
@@ -89,7 +197,7 @@ function wireAuth() {
       let result = form.id === "loginForm"
         ? authService.login(d.studentId, d.password)
         : form.id === "registerForm"
-          ? authService.register(d.studentId, d.password, d.name)
+          ? authService.register(d.studentId, d.password, d.name, d.email)
           : authService.resetPassword(d.studentId, d.password);
       if (result.success && form.id === "forgotForm") {
         form.reset();
@@ -156,7 +264,10 @@ function initDashboard() {
   const name = u.name || u.studentId,
     courses = courseService.getCoursesByStudentId(u.studentId),
     tasks = taskService.getTasksByStudentId(u.studentId) ?? [],
-    ranked = smartService.rankTasks(tasks) ?? [];
+    smartRanked = smartService.rankTasks(tasks) ?? [],
+    ranked = smartRanked.some((task) => Number.isFinite(task.manualOrder))
+      ? [...smartRanked].sort((a, b) => (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER))
+      : smartRanked;
   $("#greeting").textContent = `Good morning, ${name}`;
   const completed = tasks.filter(
       (t) => Number(t.currentProgress) === 100,
@@ -164,10 +275,8 @@ function initDashboard() {
     overdue = tasks.filter((t) => smartService.enrich(t).isOverdue).length;
   $("#stats").innerHTML =
     `<article class="card stat"><div class="stat-icon" aria-hidden="true">C</div><div><span class="muted">Courses</span><strong>${courses.length}</strong></div></article><article class="card stat"><div class="stat-icon green" aria-hidden="true">T</div><div><span class="muted">Pending tasks</span><strong>${tasks.length - completed}</strong></div></article><article class="card stat"><div class="stat-icon red" aria-hidden="true">!</div><div><span class="muted">Overdue</span><strong>${overdue}</strong></div></article>`;
-  const risky = ranked.find((t) => t.hasWorkloadWarning || t.isOverdue);
-  $("#warningArea").innerHTML = risky
-    ? `<div class="card warning-banner"><div class="warning-copy"><div class="warning-icon" aria-hidden="true">!</div><div><h3>${risky.isOverdue ? "Overdue task" : "Workload warning"}</h3><p><strong>${esc(risky.name)}</strong> · ${risky.isOverdue ? "Deadline passed" : `${risky.remainingWorkload.toFixed(1)}h remaining · ${dueLabel(risky.deadline)}`}</p></div></div><a class="btn btn-outline" href="course.html?courseId=${encodeURIComponent(risky.courseId)}">View task</a></div>`
-    : "";
+  $("#warningArea").innerHTML = warningList(smartService.getWorkloadWarning(tasks));
+  wireExpandable("#warningArea .warning-task");
   $("#courseGrid").innerHTML = courses.length
     ? courses
         .map((c) => {
@@ -208,10 +317,12 @@ function initDashboard() {
       ? ranked
           .map((t, i) => {
             const c = courses.find((x) => x.courseId === t.courseId);
-            return `<article class="recommend"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending">Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.courseName || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div></div><a class="btn ${i === 0 ? "btn-primary" : "btn-outline"}" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View task</a></article>`;
+            return `<article class="recommend expandable" data-task-id="${t.taskId}" tabindex="0" aria-expanded="false"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending" data-recommended>Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.courseName || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div>${taskDetails(t)}</div><a class="btn btn-primary" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View course</a></article>`;
           })
           .join("")
       : `<div class="empty">No pending tasks. You are caught up.</div>`;
+    wireExpandable("#recommendList .expandable");
+    wireRecommendationSort($("#recommendList"), ranked);
   };
   const close = () => {
     $("#recommendDrawer").classList.remove("open");
@@ -250,6 +361,8 @@ function initCourse() {
       `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.courseName)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
     $("#courseStats").innerHTML =
       `<article class="card course-stat"><span>Pending</span><strong>${counts.pending}</strong></article><article class="card course-stat"><span>Completed</span><strong style="color:var(--green)">${counts.completed}</strong></article><article class="card course-stat"><span>Overdue</span><strong style="color:var(--red)">${counts.overdue}</strong></article>`;
+    $("#warningArea").innerHTML = warningList(smartService.getWorkloadWarning(raw));
+    wireExpandable("#warningArea .warning-task");
     $("#filters").innerHTML = [
       ["all", "All"],
       ["pending", "In progress"],
@@ -264,8 +377,11 @@ function initCourse() {
     let list = all.filter(
       (t) => filter === "all" || t.displayStatus === filter,
     );
+    const hasManualOrder = sort === "priority" && list.some((task) => Number.isFinite(task.manualOrder));
     list.sort((a, b) =>
-      sort === "deadline"
+      hasManualOrder
+        ? (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER)
+        : sort === "deadline"
         ? new Date(a.deadline) - new Date(b.deadline)
         : sort === "importance"
           ? b.importanceScore - a.importanceScore
@@ -277,7 +393,7 @@ function initCourse() {
       ? list
           .map(
             (t) =>
-              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}" tabindex="0" aria-expanded="false"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(t.name)}</div><div class="task-sub"><span>${t.isOverdue ? "Overdue" : t.hasWorkloadWarning ? "Workload warning" : t.completionStatus === "completed" ? "Completed" : "In progress"}</span><i aria-hidden="true">&middot;</i><span>${dueLabel(t.deadline)}</span><span class="task-progress">${t.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong></div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div><aside class="task-preview"><small>Task details</small><strong>${esc(t.name)}</strong><p>${esc(t.description) || "No description provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Duration</dt><dd>${t.estimatedDuration == null ? "Not estimated (3h default)" : `${t.estimatedDuration}h`}</dd></div><div><dt>Remaining</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Priority</dt><dd>${Math.round(t.priorityScore)}</dd></div></dl>${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}</aside></article>`,
+              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}" data-task-id="${t.taskId}" draggable="true" tabindex="0" aria-expanded="false"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(t.name)}</div><div class="task-sub"><span>${t.isOverdue ? "Overdue" : t.hasWorkloadWarning ? "Workload warning" : t.completionStatus === "completed" ? "Completed" : "In progress"}</span><i aria-hidden="true">&middot;</i><span>${dueLabel(t.deadline)}</span><span class="task-progress">${t.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong></div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div><aside class="task-preview"><small>Task details</small><strong>${esc(t.name)}</strong>${taskDetails(t)}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}</aside></article>`,
           )
           .join("")
       : `<div class="empty"><h3>${filter === "all" ? "No tasks yet" : "No matching tasks"}</h3><p>${filter === "all" ? "Add your first task to start tracking this course." : "Try another filter."}</p></div>`;
@@ -314,7 +430,7 @@ function initCourse() {
           const t = raw.find((x) => x.taskId === b.dataset.edit);
           modal("Edit task", taskForm(t), (d, close) => {
             try {
-              taskService.update(t.taskId, Object.fromEntries(d));
+              taskService.update(t.taskId, taskData(d));
               close();
               render();
             } catch (e) {
@@ -334,6 +450,20 @@ function initCourse() {
         row.classList.toggle("details-open", open);
         row.setAttribute("aria-expanded", String(open));
       };
+      row.ondragstart = (event) => {
+        event.dataTransfer.setData("text/plain", row.dataset.taskId);
+        event.dataTransfer.effectAllowed = "move";
+      };
+      row.ondragover = (event) => event.preventDefault();
+      row.ondrop = (event) => {
+        event.preventDefault();
+        const dragged = document.querySelector(`[data-task-id="${CSS.escape(event.dataTransfer.getData("text/plain"))}"]`);
+        if (!dragged || dragged === row) return;
+        row.before(dragged);
+        taskService.updateDisplayOrder([...document.querySelectorAll("#taskList [data-task-id]")].map((item) => item.dataset.taskId));
+        sort = "priority";
+        render();
+      };
       row.onkeydown = (event) => {
         if ((event.key === "Enter" || event.key === " ") && event.target === row) {
           event.preventDefault();
@@ -349,7 +479,7 @@ function initCourse() {
     $("#addTaskBtn").onclick = () =>
       modal("Add task", taskForm({}), (d, close) => {
         try {
-          taskService.create({ courseId, ...Object.fromEntries(d) });
+          taskService.create({ courseId, ...taskData(d) });
           close();
           render();
         } catch (e) {

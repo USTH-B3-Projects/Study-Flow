@@ -1,48 +1,101 @@
-import { getTasksByCourseId, getTasksByStudentId } from "./taskService.js";
+import { getTasksByStudentId, getTasksByCourseId } from "./taskService.js";
 
-const DAY = 86400000;
-const IMPORTANCE_SCORES = {
-  "very-low": 20,
-  low: 40,
-  medium: 60,
-  high: 80,
-  "very-high": 100,
-};
+// The number of milliseconds in a day, used to calculate the interval between days.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-function calculateUrgencyScore(deadline, now = new Date()) {
-  const due = new Date(deadline);
-  if (due < now) return 100;
-  if (due.toDateString() === now.toDateString()) return 90;
-  const days = Math.ceil((due - now) / DAY);
-  if (days === 1) return 80;
-  if (days <= 3) return 60;
-  if (days <= 7) return 40;
+const DEFAULT_EFFECTIVE_DURATION = 2;
+
+function calculateUrgencyScore(deadline) {
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+
+  if (deadlineDate < now) {
+    return 100;
+  }
+
+  // Compare by DAY (ignoring hours/minutes/seconds) to determine "how many days remain."
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDeadlineDay = new Date(
+    deadlineDate.getFullYear(),
+    deadlineDate.getMonth(),
+    deadlineDate.getDate()
+  );
+
+  const daysRemaining = Math.round((startOfDeadlineDay - startOfToday) / ONE_DAY_MS);
+
+  if (daysRemaining <= 0) {
+    return 90;
+  }
+  if (daysRemaining === 1) {
+    return 80;
+  }
+  if (daysRemaining <= 3) {
+    return 60;
+  }
+  if (daysRemaining <= 7) {
+    return 40;
+  }
   return 20;
 }
 
 function calculateImportanceScore(importance) {
-  return IMPORTANCE_SCORES[importance] ?? 60;
+  const scoreMap = {
+    "very-low": 20,
+    low: 40,
+    medium: 60,
+    high: 80,
+    "very-high": 100,
+  };
+
+  // If the importance is invalid, it defaults to "medium".
+  return scoreMap[importance] !== undefined ? scoreMap[importance] : 60;
 }
 
 function calculateRemainingWorkload(estimatedDuration, currentProgress) {
-  return (estimatedDuration ?? 3) * (1 - Number(currentProgress) / 100);
+  const effectiveDuration =
+    estimatedDuration === null || estimatedDuration === undefined
+      ? DEFAULT_EFFECTIVE_DURATION
+      : estimatedDuration;
+
+  return effectiveDuration * (1 - currentProgress / 100);
 }
 
 function calculateWorkloadScore(remainingWorkload) {
-  if (remainingWorkload <= 1) return 20;
-  if (remainingWorkload <= 2) return 40;
-  if (remainingWorkload <= 4) return 60;
-  if (remainingWorkload <= 6) return 80;
+  if (remainingWorkload <= 1) {
+    return 20;
+  }
+  if (remainingWorkload <= 2) {
+    return 40;
+  }
+  if (remainingWorkload <= 4) {
+    return 60;
+  }
+  if (remainingWorkload <= 6) {
+    return 80;
+  }
   return 100;
+}
+
+export function calculatePriorityScore(task) {
+  const urgencyScore = calculateUrgencyScore(task.deadline);
+  const importanceScore = calculateImportanceScore(task.importance);
+
+  const remainingWorkload = calculateRemainingWorkload(
+    task.estimatedDuration,
+    task.currentProgress
+  );
+  const workloadScore = calculateWorkloadScore(remainingWorkload);
+
+  const priorityScore =
+    0.5 * urgencyScore + 0.3 * importanceScore + 0.2 * workloadScore;
+
+  return Math.round(priorityScore * 10) / 10;
 }
 
 export function enrich(task) {
   const urgencyScore = calculateUrgencyScore(task.deadline);
   const importanceScore = calculateImportanceScore(task.importance);
-  const remainingWorkload = calculateRemainingWorkload(
-    task.estimatedDuration,
-    task.currentProgress,
-  );
+  const remainingWorkload = calculateRemainingWorkload(task.estimatedDuration, task.currentProgress);
   const workloadScore = calculateWorkloadScore(remainingWorkload);
   const completionStatus = Number(task.currentProgress) === 100 ? "completed" : "pending";
   const isOverdue = completionStatus !== "completed" && new Date(task.deadline) < new Date();
@@ -55,13 +108,12 @@ export function enrich(task) {
 
   return {
     ...task,
-    effectiveDuration: task.estimatedDuration ?? 3,
+    effectiveDuration: task.estimatedDuration ?? DEFAULT_EFFECTIVE_DURATION,
     urgencyScore,
     importanceScore,
     remainingWorkload,
     workloadScore,
-    priorityScore:
-      0.5 * urgencyScore + 0.3 * importanceScore + 0.2 * workloadScore,
+    priorityScore: calculatePriorityScore(task),
     completionStatus,
     isOverdue,
     displayStatus: completionStatus === "completed" ? "completed" : isOverdue ? "overdue" : "pending",
@@ -69,35 +121,75 @@ export function enrich(task) {
   };
 }
 
-export function calculatePriorityScore(task) {
-  return enrich(task).priorityScore;
+export function rankTasks(tasks) {
+  const pendingTasks = tasks.map(enrich).filter((task) => task.currentProgress < 100);
+
+  return pendingTasks.sort((taskA, taskB) => {
+    const priorityA = calculatePriorityScore(taskA);
+    const priorityB = calculatePriorityScore(taskB);
+
+    // 1. Compare priorityScore (descending)
+    if (priorityA !== priorityB) {
+      return priorityB - priorityA;
+    }
+
+    // 2. Comparison of deadlines (in ascending order)
+    const deadlineA = new Date(taskA.deadline).getTime();
+    const deadlineB = new Date(taskB.deadline).getTime();
+    if (deadlineA !== deadlineB) {
+      return deadlineA - deadlineB;
+    }
+
+    // 3. Compare importanceScore (in descending order)
+    const importanceA = calculateImportanceScore(taskA.importance);
+    const importanceB = calculateImportanceScore(taskB.importance);
+    if (importanceA !== importanceB) {
+      return importanceB - importanceA;
+    }
+
+    // 4. Compare createdAt (ascending)
+    const createdAtA = new Date(taskA.createdAt).getTime();
+    const createdAtB = new Date(taskB.createdAt).getTime();
+    return createdAtA - createdAtB;
+  });
 }
 
-export function rankTasks(tasks) {
-  return tasks
-    .map(enrich)
-    .filter((task) => task.completionStatus !== "completed")
-    .sort(
-      (a, b) =>
-        b.priorityScore - a.priorityScore ||
-        new Date(a.deadline) - new Date(b.deadline) ||
-        b.importanceScore - a.importanceScore ||
-        new Date(a.createdAt) - new Date(b.createdAt),
-    );
+/**
+ * Returns the task recommended as the next step across ALL of the student's courses
+ * Returns null if the student has no remaining tasks to complete
+ */
+export function getGlobalRecommendations(studentId) {
+  const tasks = getTasksByStudentId(studentId);
+  const rankedTasks = rankTasks(tasks);
+
+  return rankedTasks.length > 0 ? rankedTasks[0] : null;
+}
+
+/**
+ * Returns the task recommended as the next step within the scope of a course
+ * Returns null if the course has no remaining tasks to complete
+ */
+export function getLocalRecommendations(courseId) {
+  const tasks = getTasksByCourseId(courseId);
+  const rankedTasks = rankTasks(tasks);
+
+  return rankedTasks.length > 0 ? rankedTasks[0] : null;
+}
+
+/**
+ * Conditions for a task to trigger an alert:
+ *   - Incomplete (currentProgress < 100)
+ *   - Not overdue (deadline has not yet passed)
+ *   - The user has entered an estimatedDuration (non-null)
+ *   - (urgencyScore >= 80 AND workloadScore >= 60) OR (urgencyScore >= 60 AND workloadScore >= 80)
+ *
+ * Do NOT include overdue tasks here (as there is a separate "overdue" status for them)
+ * Skip tasks that lack an estimatedDuration (warnings cannot be calculated, and it is not an error).
+ */
+export function getWorkloadWarning(tasks) {
+  return tasks.map(enrich).filter((task) => task.hasWorkloadWarning);
 }
 
 export function recommended(tasks, limit = 3) {
   return rankTasks(tasks).slice(0, limit);
-}
-
-export function getGlobalRecommendations(studentId) {
-  return rankTasks(getTasksByStudentId(studentId));
-}
-
-export function getLocalRecommendations(courseId) {
-  return rankTasks(getTasksByCourseId(courseId));
-}
-
-export function getWorkloadWarning(tasks) {
-  return rankTasks(tasks).filter((task) => task.hasWorkloadWarning || task.isOverdue);
 }

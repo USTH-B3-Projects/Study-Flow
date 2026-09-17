@@ -148,6 +148,19 @@ export function updateTask(taskId, data) {
   return updatedTask;
 }
 
+export function updateDisplayOrder(taskIds) {
+  const tasks = getAllTasks();
+  const remaining = tasks
+    .filter((task) => !taskIds.includes(task.taskId))
+    .sort((a, b) => (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER))
+    .map((task) => task.taskId);
+  const order = new Map([...taskIds, ...remaining].map((id, index) => [id, index]));
+  tasks.forEach((task) => {
+    if (order.has(task.taskId)) task.manualOrder = order.get(task.taskId);
+  });
+  saveData(TASKS_KEY, tasks);
+}
+
 export function deleteTask(taskId) {
   const tasks = getAllTasks();
   const index = tasks.findIndex((t) => t.taskId === taskId);
