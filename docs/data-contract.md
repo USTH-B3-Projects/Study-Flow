@@ -22,29 +22,50 @@ values, and relationships defined in this document.
 
 <b>Register Input</b>
 
-| Field | Type | Required | Default | Description |
-|---|---|---:|---|---|
-| studentId | String | Yes | null | Unique student identifier and login ID |
-| name | String | Yes | null | Student's display name |
-| password | String | Yes | null | Password for prototype authentication |
+| Field | Type | Required | Default | Stored? | Description |
+|---|---|---:|---|---|---|
+| fullname | String | Yes | null | Yes | Student's display name |
+| username | String | Yes | null | Yes | Unique login identifier |
+| password | String | Yes | null | Yes | Password for prototype authentication |
+| confirmPassword | String | Yes | null | No | Must match `password` |
+
+After successful registration, the system generates a recovery code.
+The original recovery code is shown to the student once and is not stored directly.
 
 <b>Login Input</b>
 | Field | Type | Required | Description |
 |---|---|---:|---|
-| studentId | String | Yes | Student ID used for login |
+| username | String | Yes | Student username used for login |
 | password | String | Yes | Account password |
+
+<b>Reset Password Input</b>
+| Field | Type | Required | Stored? | Description |
+|---|---|---:|---|---|
+| username | String | Yes | No | Identifies the account |
+| newPassword | String | Yes | Yes | Replaces the current password after successful validation |
+| confirmPassword | String | Yes | No | Must match `newPassword` |
+
+<b>Stored Student Data</b>
+| Field | Type | Required | Default | Description |
+|---|---|---:|---|---|
+| fullname | String | Yes | null | Student's display name |
+| username | String | Yes | null | Unique identifier used for login |
+| password | String | Yes | null | Password for prototype authentication |
 
 ### Account Validation
 
-- `studentId` must not be empty, must be unique, must be trimmed before being stored
-- `name` must not be empty, must be trimmed before being stored.
-- `password` must meet the minimum length selected by the team.
+- `fullname` must not be empty, must be trimmed before being stored.
+- `password` must meet the minimum length of 8 characters.
+- `confirmPassword` must match `password` and must not be stored.
+- `newPassword` must meet the minimum length of 8 characters.
 
 <!--
+Stored Student example:
+
 {
-  "studentId": "1023",
-  "name": "John Doe",
-  "password": "demo-password"
+  "fullname": "John Doe",
+  "usernam": "johndoe123",
+  "password": "demo-password",
 }
 -->
 
@@ -53,20 +74,20 @@ values, and relationships defined in this document.
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | courseId | String | Yes | Generated | Unique course identifier |
-| studentId | String | Yes | null | ID of the course owner |
-| name | String | Yes | null | Course name |
+| username | String | Yes | null | username of the course owner |
+| courseName | String | Yes | null | Course name |
 | color | String or null | No | null | Optional course display color |
 
 ### Course Validation
 
-- `name` must not be empty.
-- `studentId` must refer to an existing student.
+- `courseName` must not be empty.
+- `username` must refer to an existing student.
 - `color` must be a valid CSS color if provided.
 
 <!--{
   "courseId": "course-001",
-  "studentId": "1023",
-  "name": "Deep Learning",
+  "username": "johndoe123",
+  "courseName": "Deep Learning",
   "color": "#6C63FF"
 }
 -->
@@ -77,7 +98,7 @@ values, and relationships defined in this document.
 |---|---|---:|---|---|
 | taskId | String | Yes | Generated | Unique task identifier |
 | courseId | String | Yes | null | ID of the Course containing the task |
-| name | String | Yes | null | Task name |
+| taskName | String | Yes | null | Task name |
 | description | String | No | "" | Additional task information |
 | deadline | ISO Date String | Yes | null | Task deadline |
 | importance | ImportanceLevel | Yes | "medium" | User-selected importance |
@@ -87,7 +108,7 @@ values, and relationships defined in this document.
 
 ### Task Validation
 
-- `name` must not be empty.
+- `taskName` must not be empty.
 - `courseId` must refer to an existing course.
 - `deadline` must be a valid date.
 - `estimatedDuration` must be greater than 0 when provided.
@@ -101,7 +122,7 @@ values, and relationships defined in this document.
 {
   "taskId": "task-001",
   "courseId": "course-001",
-  "name": "Finish DL Lab",
+  "taskName": "Finish DL Lab",
   "description": "Complete the PyTorch exercise",
   "deadline": "2026-09-15T23:59:00.000Z",
   "importance": "high",
@@ -114,7 +135,7 @@ values, and relationships defined in this document.
 <!--{
   "taskId": "task-002",
   "courseId": "course-001",
-  "name": "Review Lecture 4",
+  "taskName": "Review Lecture 4",
   "description": "",
   "deadline": "2026-09-18T23:59:00.000Z",
   "importance": "medium",
@@ -182,7 +203,7 @@ values, and relationships defined in this document.
 
 ## 7. Derived Task Values
 
-The following values are calculated by PriorityService.
+The following values are calculated by `smartService.js`.
 They are not entered directly by the user.
 
 | Field | Type | Stored? | Description |
@@ -231,7 +252,7 @@ Else
 ## 8. Relationships
 
 - One Student can have zero or many Courses.
-- One Course belongs to exactly one Student, identified by studentId.
+- One Course belongs to exactly one Student, identified by username.
 - One Course can have zero or many Tasks.
 - One Task belongs to exactly one Course, identified by courseId.
 
@@ -252,25 +273,25 @@ Before deleting a task, the system must display a confirmation.
 
 | Key | Value Type | Description |
 |---|---|---|
-| users | Array<Student> | Registered students |
-| courses | Array<Course> | All courses |
-| tasks | Array<Task> | All tasks |
-| current_user | String or null | studentId of logged-in student |
+| studyflow_users | Array<Student> | Registered students |
+| studyflow_courses | Array<Course> | All courses |
+| studyflow_tasks | Array<Task> | All tasks |
+| studyflow_current_user | String or null | username of logged-in student |
 
 <!--
 Initial data:
 { 
-  "users": [],
-  "courses": [],
-  "tasks": [],
-  "current_user": null
+  "studyflow_users": [],
+  "studyflow_courses": [],
+  "studyflow_tasks": [],
+  "studyflow_current_user": null
 }
 -->
 
 
 ## 11. Recommended Task View
 
-PriorityService combines stored Task data with calculated values.
+`smartService.js` combines stored Task data with calculated values.
 
 ### Recommendation Sorting
 
@@ -292,7 +313,7 @@ Tasks are sorted by:
 {
   "taskId": "task-001",
   "courseId": "course-001",
-  "name": "Finish DL Lab",
+  "taskName": "Finish DL Lab",
   "deadline": "2026-09-15T23:59:00.000Z",
   "importance": "high",
   "estimatedDuration": 6,
