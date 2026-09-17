@@ -1,41 +1,187 @@
-function calculateUrgencyScore(deadline) {
+import { getTasksByStudentId, getTasksByCourseId } from "./taskService.js";
 
+// The number of milliseconds in a day, used to calculate the interval between days.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+const DEFAULT_EFFECTIVE_DURATION = 2;
+
+function calculateUrgencyScore(deadline) {
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+
+  if (deadlineDate < now) {
+    return 100;
+  }
+
+  // Compare by DAY (ignoring hours/minutes/seconds) to determine "how many days remain."
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDeadlineDay = new Date(
+    deadlineDate.getFullYear(),
+    deadlineDate.getMonth(),
+    deadlineDate.getDate()
+  );
+
+  const daysRemaining = Math.round((startOfDeadlineDay - startOfToday) / ONE_DAY_MS);
+
+  if (daysRemaining <= 0) {
+    return 90;
+  }
+  if (daysRemaining === 1) {
+    return 80;
+  }
+  if (daysRemaining <= 3) {
+    return 60;
+  }
+  if (daysRemaining <= 7) {
+    return 40;
+  }
+  return 20;
 }
 
 function calculateImportanceScore(importance) {
+  const scoreMap = {
+    "very-low": 20,
+    low: 40,
+    medium: 60,
+    high: 80,
+    "very-high": 100,
+  };
 
+  // If the importance is invalid, it defaults to "medium".
+  return scoreMap[importance] !== undefined ? scoreMap[importance] : 60;
 }
 
 function calculateRemainingWorkload(estimatedDuration, currentProgress) {
+  const effectiveDuration =
+    estimatedDuration === null || estimatedDuration === undefined
+      ? DEFAULT_EFFECTIVE_DURATION
+      : estimatedDuration;
 
+  return effectiveDuration * (1 - currentProgress / 100);
 }
 
 function calculateWorkloadScore(remainingWorkload) {
-
+  if (remainingWorkload <= 1) {
+    return 20;
+  }
+  if (remainingWorkload <= 2) {
+    return 40;
+  }
+  if (remainingWorkload <= 4) {
+    return 60;
+  }
+  if (remainingWorkload <= 6) {
+    return 80;
+  }
+  return 100;
 }
 
 export function calculatePriorityScore(task) {
-    const urgencyScore =
-        calculateUrgencyScore(task.deadline);
+  const urgencyScore = calculateUrgencyScore(task.deadline);
+  const importanceScore = calculateImportanceScore(task.importance);
 
-    const importanceScore =
-        calculateImportanceScore(task.importance);
+  const remainingWorkload = calculateRemainingWorkload(
+    task.estimatedDuration,
+    task.currentProgress
+  );
+  const workloadScore = calculateWorkloadScore(remainingWorkload);
 
-    //calculate priority
+  const priorityScore =
+    0.5 * urgencyScore + 0.3 * importanceScore + 0.2 * workloadScore;
+
+  return Math.round(priorityScore * 10) / 10;
 }
 
 export function rankTasks(tasks) {
+  const pendingTasks = tasks.filter((task) => task.currentProgress < 100);
 
+  return pendingTasks.sort((taskA, taskB) => {
+    const priorityA = calculatePriorityScore(taskA);
+    const priorityB = calculatePriorityScore(taskB);
+
+    // 1. Compare priorityScore (descending)
+    if (priorityA !== priorityB) {
+      return priorityB - priorityA;
+    }
+
+    // 2. Comparison of deadlines (in ascending order)
+    const deadlineA = new Date(taskA.deadline).getTime();
+    const deadlineB = new Date(taskB.deadline).getTime();
+    if (deadlineA !== deadlineB) {
+      return deadlineA - deadlineB;
+    }
+
+    // 3. Compare importanceScore (in descending order)
+    const importanceA = calculateImportanceScore(taskA.importance);
+    const importanceB = calculateImportanceScore(taskB.importance);
+    if (importanceA !== importanceB) {
+      return importanceB - importanceA;
+    }
+
+    // 4. Compare createdAt (ascending)
+    const createdAtA = new Date(taskA.createdAt).getTime();
+    const createdAtB = new Date(taskB.createdAt).getTime();
+    return createdAtA - createdAtB;
+  });
 }
 
+/**
+ * Returns the task recommended as the next step across ALL of the student's courses
+ * (the task with the highest priorityScore among the incomplete tasks)
+ * Returns null if the student has no remaining tasks to complete
+ */
 export function getGlobalRecommendations(studentId) {
+  const tasks = getTasksByStudentId(studentId);
+  const rankedTasks = rankTasks(tasks);
 
+  return rankedTasks.length > 0 ? rankedTasks[0] : null;
 }
 
+/**
+ * Returns the task recommended as the next step within the scope of a course
+ * (the task with the highest priorityScore among the incomplete tasks of that course)
+ * Returns null if the course has no remaining tasks to complete
+ */
 export function getLocalRecommendations(courseId) {
+  const tasks = getTasksByCourseId(courseId);
+  const rankedTasks = rankTasks(tasks);
 
+  return rankedTasks.length > 0 ? rankedTasks[0] : null;
 }
 
+/**
+ * Conditions for a task to trigger an alert:
+ *   - Incomplete (currentProgress < 100)
+ *   - Not overdue (deadline has not yet passed)
+ *   - The user has entered an estimatedDuration (non-null)
+ *   - (urgencyScore >= 80 AND workloadScore >= 60) OR (urgencyScore >= 60 AND workloadScore >= 80)
+ *
+ * Do NOT include overdue tasks here (as there is a separate "overdue" status for them)
+ * Skip tasks that lack an estimatedDuration (warnings cannot be calculated, and it is not an error).
+ */
 export function getWorkloadWarning(tasks) {
+  const now = new Date();
 
+  return tasks.filter((task) => {
+    const isNotCompleted = task.currentProgress < 100;
+    const isOverdue = new Date(task.deadline) < now;
+    const hasEstimatedDuration =
+      task.estimatedDuration !== null && task.estimatedDuration !== undefined;
+
+    if (!isNotCompleted || isOverdue || !hasEstimatedDuration) {
+      return false;
+    }
+
+    const urgencyScore = calculateUrgencyScore(task.deadline);
+    const remainingWorkload = calculateRemainingWorkload(
+      task.estimatedDuration,
+      task.currentProgress
+    );
+    const workloadScore = calculateWorkloadScore(remainingWorkload);
+
+    const highUrgencyMediumWorkload = urgencyScore >= 80 && workloadScore >= 60;
+    const mediumUrgencyHighWorkload = urgencyScore >= 60 && workloadScore >= 80;
+
+    return highUrgencyMediumWorkload || mediumUrgencyHighWorkload;
+  });
 }
