@@ -56,7 +56,7 @@ Manages registration, authentication, password recovery, and the current login s
 | --- | --- | --- | --- |
 | `register(studentName, username, password, confirmPassword)` | 4 strings | `Promise<OperationResult>` | Validate the input, create a student record, generate and store `recoveryCodeHash`, and return the original recovery code once. |
 | `login(username, password)` | 2 strings | `OperationResult` | Authenticate a student and save the current session. |
-| `resetPassword(username, recoveryCode, newPassword, confirmPassword)` | 4 strings | `Promise<OperationResult>` | Validate the recovery code, update the password, invalidate the old code, and return a newly generated recovery code once. |
+| `resetPassword(username, newPassword, confirmPassword)` | 3 strings | `Promise<OperationResult>` | Check username existence, update the password, invalidate the old code, and return a newly generated recovery code once. |
 | `logout()` | None | `void` | End the current session by removing `studyflow_current_user`. |
 | `getCurrentUser()` | None | `Student \| null` | Return the authenticated student or `null` if no valid session exists. |
 
