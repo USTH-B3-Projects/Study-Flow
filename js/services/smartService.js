@@ -127,7 +127,6 @@ export function rankTasks(tasks) {
 
 /**
  * Returns the task recommended as the next step across ALL of the student's courses
- * (the task with the highest priorityScore among the incomplete tasks)
  * Returns null if the student has no remaining tasks to complete
  */
 export function getGlobalRecommendations(studentId) {
@@ -139,7 +138,6 @@ export function getGlobalRecommendations(studentId) {
 
 /**
  * Returns the task recommended as the next step within the scope of a course
- * (the task with the highest priorityScore among the incomplete tasks of that course)
  * Returns null if the course has no remaining tasks to complete
  */
 export function getLocalRecommendations(courseId) {
