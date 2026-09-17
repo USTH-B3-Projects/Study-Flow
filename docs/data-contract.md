@@ -24,8 +24,8 @@ values, and relationships defined in this document.
 
 | Field | Type | Required | Default | Stored? | Description |
 |---|---|---:|---|---|---|
-| studentName | String | Yes | null | Yes | Student's display name |
-| studentId | String | Yes | null | Yes | Unique login identifier |
+| fullname | String | Yes | null | Yes | Student's display name |
+| username | String | Yes | null | Yes | Unique login identifier |
 | password | String | Yes | null | Yes | Password for prototype authentication |
 | confirmPassword | String | Yes | null | No | Must match `password` |
 
@@ -35,45 +35,37 @@ The original recovery code is shown to the student once and is not stored direct
 <b>Login Input</b>
 | Field | Type | Required | Description |
 |---|---|---:|---|
-| studentId | String | Yes | Student ID used for login |
+| username | String | Yes | Student username used for login |
 | password | String | Yes | Account password |
 
 <b>Reset Password Input</b>
 | Field | Type | Required | Stored? | Description |
 |---|---|---:|---|---|
-| studentId | String | Yes | No | Identifies the account |
-| recoveryCode | String | Yes | No | Code provided after registration |
+| username | String | Yes | No | Identifies the account |
 | newPassword | String | Yes | Yes | Replaces the current password after successful validation |
 | confirmPassword | String | Yes | No | Must match `newPassword` |
 
 <b>Stored Student Data</b>
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
-| studentName | String | Yes | null | Student's display name |
-| studentId | String | Yes | null | Unique identifier used for login |
+| fullname | String | Yes | null | Student's display name |
+| username | String | Yes | null | Unique identifier used for login |
 | password | String | Yes | null | Password for prototype authentication |
-| recoveryCodeHash | String | Yes | Generated | Hashed version of the recovery code |
 
 ### Account Validation
 
-- `studentId` must not be empty, must be unique, must be trimmed before being stored
-- `studentName` must not be empty, must be trimmed before being stored.
+- `fullname` must not be empty, must be trimmed before being stored.
 - `password` must meet the minimum length of 8 characters.
 - `confirmPassword` must match `password` and must not be stored.
-- `recoveryCode` must not be stored directly.
-- `recoveryCodeHash` is generated and stored after successful registration.
-- Resetting a password requires both a valid `studentId` and a valid `recoveryCode`.
-- `newPassword` must meet the password requirements.
-- The recovery code must be regenerated after a successful password reset.
+- `newPassword` must meet the minimum length of 8 characters.
 
 <!--
 Stored Student example:
 
 {
-  "studentName": "John Doe",
-  "studentId": "1023",
+  "fullname": "John Doe",
+  "usernam": "johndoe123",
   "password": "demo-password",
-  "recoveryCodeHash": "hashed-recovery-code"
 }
 -->
 
@@ -82,19 +74,19 @@ Stored Student example:
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | courseId | String | Yes | Generated | Unique course identifier |
-| studentId | String | Yes | null | ID of the course owner |
+| username | String | Yes | null | username of the course owner |
 | courseName | String | Yes | null | Course name |
 | color | String or null | No | null | Optional course display color |
 
 ### Course Validation
 
 - `courseName` must not be empty.
-- `studentId` must refer to an existing student.
+- `username` must refer to an existing student.
 - `color` must be a valid CSS color if provided.
 
 <!--{
   "courseId": "course-001",
-  "studentId": "1023",
+  "username": "johndoe123",
   "courseName": "Deep Learning",
   "color": "#6C63FF"
 }
@@ -260,7 +252,7 @@ Else
 ## 8. Relationships
 
 - One Student can have zero or many Courses.
-- One Course belongs to exactly one Student, identified by studentId.
+- One Course belongs to exactly one Student, identified by username.
 - One Course can have zero or many Tasks.
 - One Task belongs to exactly one Course, identified by courseId.
 
@@ -284,7 +276,7 @@ Before deleting a task, the system must display a confirmation.
 | studyflow_users | Array<Student> | Registered students |
 | studyflow_courses | Array<Course> | All courses |
 | studyflow_tasks | Array<Task> | All tasks |
-| studyflow_current_user | String or null | studentId of logged-in student |
+| studyflow_current_user | String or null | username of logged-in student |
 
 <!--
 Initial data:
