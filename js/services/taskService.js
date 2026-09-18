@@ -2,6 +2,7 @@ import { getCourseById } from "./courseService.js";
 
 const TASKS_KEY = "studyflow_tasks";
 const COURSES_KEY = "studyflow_courses";
+const LEGACY_USER_ID = "studentId";
 
 const VALID_PROGRESS_VALUES = [0, 25, 50, 75, 100];
 const VALID_IMPORTANCE_VALUES = ["very-low", "low", "medium", "high", "very-high"];
@@ -11,8 +12,19 @@ function generateTaskId() {
 }
 
 function getData(key) {
-  const data = JSON.parse(localStorage.getItem(key) ?? "[]");
+  let data = JSON.parse(localStorage.getItem(key) ?? "[]");
   if (!Array.isArray(data)) throw new Error(`Invalid stored data for ${key}`);
+  if (key === COURSES_KEY) {
+    const migrated = data.map((course) => {
+      if (!course || typeof course !== "object" || !(LEGACY_USER_ID in course)) return course;
+      const { [LEGACY_USER_ID]: legacyUserId, ...rest } = course;
+      return { ...rest, userId: rest.userId ?? legacyUserId };
+    });
+    if (migrated.some((course, index) => course !== data[index])) {
+      saveData(key, migrated);
+      data = migrated;
+    }
+  }
   return data;
 }
 
@@ -87,14 +99,14 @@ export function createTask(taskData) {
   return newTask;
 }
 
-export function getTasksByStudentId(studentId) {
+export function getTasksByUserId(userId) {
   const courses = getData(COURSES_KEY);
-  const studentCourseIds = courses
-    .filter((course) => course.studentId === studentId)
+  const userCourseIds = courses
+    .filter((course) => course.userId === userId)
     .map((course) => course.courseId);
 
   const tasks = getAllTasks();
-  return tasks.filter((task) => studentCourseIds.includes(task.courseId));
+  return tasks.filter((task) => userCourseIds.includes(task.courseId));
 }
 
 export function getTasksByCourseId(courseId) {
@@ -195,11 +207,11 @@ export function markTaskCompleted(taskId) {
   return updateTaskProgress(taskId, 100);
 }
 
-export function getOverdueTasks(studentId) {
+export function getOverdueTasks(userId) {
   const now = new Date();
-  const studentTasks = getTasksByStudentId(studentId);
+  const userTasks = getTasksByUserId(userId);
 
-  return studentTasks.filter((task) => {
+  return userTasks.filter((task) => {
     const isNotCompleted = task.currentProgress < 100;
     const isPastDeadline = new Date(task.deadline) < now;
     return isNotCompleted && isPastDeadline;

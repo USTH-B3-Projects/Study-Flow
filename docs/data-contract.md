@@ -18,38 +18,38 @@ values, and relationships defined in this document.
 - Missing optional value: null
 - All IDs must be unique
 
-## 3. Student
+## 3. User
 
 <b>Register Input</b>
 
 | Field | Type | Required | Default | Stored? | Description |
 |---|---|---:|---|---|---|
-| fullname | String | Yes | null | Yes | Student's display name |
-| username | String | Yes | null | Yes | Unique login identifier |
+| fullname | String | Yes | null | Yes | User's display name |
+| userId | String | Yes | null | Yes | Unique login identifier |
 | password | String | Yes | null | Yes | Password for prototype authentication |
 | confirmPassword | String | Yes | null | No | Must match `password` |
 
 After successful registration, the system generates a recovery code.
-The original recovery code is shown to the student once and is not stored directly.
+The original recovery code is shown to the user once and is not stored directly.
 
 <b>Login Input</b>
 | Field | Type | Required | Description |
 |---|---|---:|---|
-| username | String | Yes | Student username used for login |
+| userId | String | Yes | User ID used for login |
 | password | String | Yes | Account password |
 
 <b>Reset Password Input</b>
 | Field | Type | Required | Stored? | Description |
 |---|---|---:|---|---|
-| username | String | Yes | No | Identifies the account |
+| userId | String | Yes | No | Identifies the account |
 | newPassword | String | Yes | Yes | Replaces the current password after successful validation |
 | confirmPassword | String | Yes | No | Must match `newPassword` |
 
-<b>Stored Student Data</b>
+<b>Stored User Data</b>
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
-| fullname | String | Yes | null | Student's display name |
-| username | String | Yes | null | Unique identifier used for login |
+| fullname | String | Yes | null | User's display name |
+| userId | String | Yes | null | Unique identifier used for login |
 | password | String | Yes | null | Password for prototype authentication |
 
 ### Account Validation
@@ -60,11 +60,11 @@ The original recovery code is shown to the student once and is not stored direct
 - `newPassword` must meet the minimum length of 8 characters.
 
 <!--
-Stored Student example:
+Stored User example:
 
 {
   "fullname": "John Doe",
-  "usernam": "johndoe123",
+  "userId": "johndoe123",
   "password": "demo-password",
 }
 -->
@@ -74,19 +74,19 @@ Stored Student example:
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | courseId | String | Yes | Generated | Unique course identifier |
-| username | String | Yes | null | username of the course owner |
+| userId | String | Yes | null | User ID of the course owner |
 | courseName | String | Yes | null | Course name |
 | color | String or null | No | null | Optional course display color |
 
 ### Course Validation
 
 - `courseName` must not be empty.
-- `username` must refer to an existing student.
+- `userId` must refer to an existing user.
 - `color` must be a valid CSS color if provided.
 
 <!--{
   "courseId": "course-001",
-  "username": "johndoe123",
+  "userId": "johndoe123",
   "courseName": "Deep Learning",
   "color": "#6C63FF"
 }
@@ -251,8 +251,8 @@ Else
 
 ## 8. Relationships
 
-- One Student can have zero or many Courses.
-- One Course belongs to exactly one Student, identified by username.
+- One User can have zero or many Courses.
+- One Course belongs to exactly one User, identified by `userId`.
 - One Course can have zero or many Tasks.
 - One Task belongs to exactly one Course, identified by courseId.
 
@@ -273,10 +273,10 @@ Before deleting a task, the system must display a confirmation.
 
 | Key | Value Type | Description |
 |---|---|---|
-| studyflow_users | Array<Student> | Registered students |
+| studyflow_users | Array<User> | Registered users |
 | studyflow_courses | Array<Course> | All courses |
 | studyflow_tasks | Array<Task> | All tasks |
-| studyflow_current_user | String or null | username of logged-in student |
+| studyflow_current_user | String or null | User ID of logged-in user |
 
 <!--
 Initial data:

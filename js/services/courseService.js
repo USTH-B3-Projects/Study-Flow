@@ -1,12 +1,25 @@
 const COURSES_KEY = "studyflow_courses";
 const USERS_KEY = "users";
 const TASKS_KEY = "studyflow_tasks";
+const LEGACY_USER_ID = "studentId";
 
 function readArray(key) {
-    const data = JSON.parse(localStorage.getItem(key) ?? "[]");
+    let data = JSON.parse(localStorage.getItem(key) ?? "[]");
 
     if (!Array.isArray(data)) {
         throw new Error(`Invalid stored data for ${key}`);
+    }
+
+    if (key === COURSES_KEY) {
+        const migrated = data.map((course) => {
+            if (!course || typeof course !== "object" || !(LEGACY_USER_ID in course)) return course;
+            const { [LEGACY_USER_ID]: legacyUserId, ...rest } = course;
+            return { ...rest, userId: rest.userId ?? legacyUserId };
+        });
+        if (migrated.some((course, index) => course !== data[index])) {
+            saveArray(key, migrated);
+            data = migrated;
+        }
     }
 
     return data;
@@ -50,26 +63,26 @@ export function createCourse(course) {
 
     const courseName = validateCourseName(course.courseName);
     const color = validateColor(course.color);
-    const studentId =
-        typeof course.studentId === "string"
-            ? course.studentId.trim()
+    const userId =
+        typeof course.userId === "string"
+            ? course.userId.trim()
             : "";
 
-    if (!studentId) {
-        throw new Error("Student ID is required");
+    if (!userId) {
+        throw new Error("User ID is required");
     }
 
     const users = readArray(USERS_KEY);
 
-    if (!users.some((user) => user.studentId === studentId)) {
-        throw new Error("Student does not exist");
+    if (!users.some((user) => (user.userId ?? user[LEGACY_USER_ID]) === userId)) {
+        throw new Error("User does not exist");
     }
 
     const courses = readArray(COURSES_KEY);
 
     const newCourse = {
         courseId: crypto.randomUUID(),
-        studentId,
+        userId,
         courseName,
         color,
     };
@@ -79,9 +92,9 @@ export function createCourse(course) {
     return newCourse;
 }
 
-export function getCoursesByStudentId(studentId) {
+export function getCoursesByUserId(userId) {
     return readArray(COURSES_KEY).filter(
-        (course) => course.studentId === studentId,
+        (course) => course.userId === userId,
     );
 }
 

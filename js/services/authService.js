@@ -1,5 +1,6 @@
 const USERS_KEY = "users";
 const CURRENT_USER_KEY = "current_user";
+const LEGACY_USER_ID = "studentId";
 
 function readJson(key, fallback) {
   try {
@@ -11,16 +12,27 @@ function readJson(key, fallback) {
 
 function getUsers() {
   const users = readJson(USERS_KEY, []);
-  return Array.isArray(users) ? users : [];
+  if (!Array.isArray(users)) return [];
+  const migrated = users.map(migrateUser);
+  if (migrated.some((user, index) => user !== users[index])) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(migrated));
+  }
+  return migrated;
 }
 
-export function register(studentId, password, name, email) {
+function migrateUser(user) {
+  if (!user || typeof user !== "object" || !(LEGACY_USER_ID in user)) return user;
+  const { [LEGACY_USER_ID]: legacyUserId, ...migrated } = user;
+  return { ...migrated, userId: migrated.userId ?? legacyUserId };
+}
+
+export function register(userId, password, name, email) {
   name = String(name ?? "").trim();
-  studentId = String(studentId ?? "").trim();
+  userId = String(userId ?? "").trim();
   password = String(password ?? "");
   email = String(email ?? "").trim().toLowerCase();
 
-  if (!studentId || !name || !password) {
+  if (!userId || !name || !password) {
     return { success: false, error: "All fields are required" };
   }
   if (password.length < 8) {
@@ -28,14 +40,14 @@ export function register(studentId, password, name, email) {
   }
 
   const users = getUsers();
-  if (users.some((user) => user.studentId.toLowerCase() === studentId.toLowerCase())) {
-    return { success: false, error: "Student ID already registered" };
+  if (users.some((user) => user.userId.toLowerCase() === userId.toLowerCase())) {
+    return { success: false, error: "User ID already registered" };
   }
   if (email && users.some((user) => String(user.email || "").toLowerCase() === email)) {
     return { success: false, error: "Email already registered" };
   }
   const user = {
-    studentId,
+    userId,
     name,
     password,
     ...(email && { email }),
@@ -50,7 +62,7 @@ export function login(identifier, password) {
   password = String(password ?? "");
   const user = getUsers().find(
     (candidate) =>
-      (candidate.studentId.toLowerCase() === identifier ||
+      (candidate.userId.toLowerCase() === identifier ||
         String(candidate.email || "").toLowerCase() === identifier) &&
       candidate.password === password,
   );
@@ -70,7 +82,7 @@ export function resetPassword(identifier, password) {
 
   const users = getUsers();
   const index = users.findIndex((user) =>
-    user.studentId.toLowerCase() === identifier || String(user.email || "").toLowerCase() === identifier,
+    user.userId.toLowerCase() === identifier || String(user.email || "").toLowerCase() === identifier,
   );
   if (index < 0) return { success: false, error: "Username or email not found" };
 
@@ -85,6 +97,9 @@ export function logout() {
 }
 
 export function getCurrentUser() {
-  const user = readJson(CURRENT_USER_KEY, null);
-  return user && typeof user === "object" && !Array.isArray(user) ? user : null;
+  const storedUser = readJson(CURRENT_USER_KEY, null);
+  if (!storedUser || typeof storedUser !== "object" || Array.isArray(storedUser)) return null;
+  const user = migrateUser(storedUser);
+  if (user !== storedUser) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  return user;
 }

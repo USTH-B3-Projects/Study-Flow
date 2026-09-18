@@ -38,8 +38,8 @@
 
 ### Authentication – Supporting Functionality
 
-- Registration requires student full name, unique username, password, and password confirmation.
-- Login uses student ID and password. Password reset requires username, new password, and confirmation.
+- Registration requires user full name, unique username, password, and password confirmation.
+- Login uses user ID and password. Password reset requires username, new password, and confirmation.
 - After a successful reset, the old password is invalidated and a new one is generated.
 
 ## 3. Smart Features (Actor: System)
@@ -53,7 +53,7 @@ Smart Task Prioritization differentiates StudyFlow from a traditional to-do list
 | User provides | Deadline; importance level; current progress; estimated duration |
 | System derives | Urgency score; importance score; remaining workload; workload score; overdue status |
 | Estimated duration | Input value or self-choosing based on recommendation |
-| System calculates | Priority score (0–100), then automatically ranks pending tasks (Student can change the recommended list depend on their choice) |
+| System calculates | Priority score (0–100), then automatically ranks pending tasks (User can change the recommended list depend on their choice) |
 | Outputs | Priority Score; Automatic Task Ranking; Recommended Next Task; Workload Warning |
 
 Overdue Status is not used as an additional factor in the Priority formula. However, overdue tasks receive an Urgency Score of 100 based on their deadline.

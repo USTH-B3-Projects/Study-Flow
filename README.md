@@ -23,10 +23,10 @@ If estimated duration is not provided, the system uses a default effective durat
 StudyFlow uses browser `localStorage` for prototype data persistence.
 
 Main stored data:
-- Students
+- Users
 - Courses
 - Tasks
-- Current logged-in student
+- Current logged-in user
 Calculated values: priority score, workload score, overdue status, and workload warning are derived by the system and are not stored directly.
 
 ## Project Documents

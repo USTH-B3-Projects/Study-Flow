@@ -89,8 +89,15 @@ function taskData(formData) {
   }
   return data;
 }
-function taskDetails(t) {
-  return `<div class="task-details-panel"><p>${esc(t.description) || "No note provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Effective duration</dt><dd>${t.effectiveDuration}h${t.estimatedDuration == null ? " (default)" : ""}</dd></div><div><dt>Remaining workload</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Workload score</dt><dd>${t.workloadScore}</dd></div><div><dt>Priority score</dt><dd>${Math.round(t.priorityScore)}</dd></div></dl></div>`;
+function taskDetails(t, includeStatus = false) {
+  const status = t.isOverdue
+    ? ["overdue", "Overdue"]
+    : t.completionStatus === "completed"
+      ? ["completed", "Completed"]
+      : t.hasWorkloadWarning
+        ? ["warning", "Workload warning"]
+        : ["pending", "In progress"];
+  return `<div class="task-details-panel"><p>${esc(t.description) || "No note provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Effective duration</dt><dd>${t.effectiveDuration}h${t.estimatedDuration == null ? " (default)" : ""}</dd></div><div><dt>Remaining workload</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Workload score</dt><dd>${t.workloadScore}</dd></div><div class="detail-priority"><dt>Priority score</dt><dd>${Math.round(t.priorityScore)}</dd></div>${includeStatus ? `<div class="detail-status"><dt>Status</dt><dd><span class="status ${status[0]}">${status[1]}</span></dd></div>` : ""}</dl></div>`;
 }
 function warningList(tasks) {
   return tasks.length ? `<div class="card warning-banner warning-list"><div class="warning-heading"><div class="warning-icon" aria-hidden="true">!</div><div><h3>Workload Warning</h3><p>${tasks.length} ${tasks.length === 1 ? "task needs" : "tasks need"} attention</p></div></div>${tasks.map((t) => `<article class="warning-task" tabindex="0" role="button" aria-expanded="false"><strong>${esc(t.name)}</strong><span class="status ${t.isOverdue ? "overdue" : "warning"}">${t.isOverdue ? "OVERDUE" : "High workload"}</span><small>${dueLabel(t.deadline)} &middot; ${t.remainingWorkload.toFixed(1)}h remaining</small>${taskDetails(t)}</article>`).join("")}</div>` : "";
@@ -112,14 +119,9 @@ function wireExpandable(selector) {
     };
   });
 }
-function wireRecommendationSort(list, ranked) {
+function wireTaskSort(list, tasks, syncOrderUI = () => {}) {
   let drag = null;
   const animate = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const syncOrderUI = () => {
-    list.querySelectorAll(".rank").forEach((rank, index) => (rank.textContent = index + 1));
-    list.querySelector("[data-recommended]")?.remove();
-    list.querySelector("[data-task-id] > div:nth-child(2)")?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
-  };
   const movePlaceholder = (before) => {
     const cards = [...list.querySelectorAll("[data-task-id]:not(.dragging)")];
     const beforeRects = new Map(cards.map((card) => [card, card.getBoundingClientRect()]));
@@ -171,7 +173,7 @@ function wireRecommendationSort(list, ranked) {
         const ids = [...list.querySelectorAll("[data-task-id]")].map((card) => card.dataset.taskId);
         if (ids.some((id, index) => id !== drag.originalIds[index])) {
           taskService.updateDisplayOrder(ids);
-          ranked.sort((a, b) => ids.indexOf(a.taskId) - ids.indexOf(b.taskId));
+          tasks.sort((a, b) => ids.indexOf(a.taskId) - ids.indexOf(b.taskId));
         }
         syncOrderUI();
         item.dataset.justDragged = "true";
@@ -195,10 +197,10 @@ function wireAuth() {
         return;
       }
       let result = form.id === "loginForm"
-        ? authService.login(d.studentId, d.password)
+        ? authService.login(d.userId, d.password)
         : form.id === "registerForm"
-          ? authService.register(d.studentId, d.password, d.name, d.email)
-          : authService.resetPassword(d.studentId, d.password);
+          ? authService.register(d.userId, d.password, d.name, d.email)
+          : authService.resetPassword(d.userId, d.password);
       if (result.success && form.id === "forgotForm") {
         form.reset();
         document.querySelector('.tab[data-auth-target="login"]').click();
@@ -206,7 +208,7 @@ function wireAuth() {
         return;
       }
       if (result.success && form.id === "registerForm") {
-        result = authService.login(d.studentId, d.password);
+        result = authService.login(d.userId, d.password);
       }
       if (!result.success) {
         form.querySelector(".form-error").textContent = result.error;
@@ -243,7 +245,7 @@ function initShell() {
     location.href = "index.html#authCard";
     return null;
   }
-  const name = u.name || u.studentId;
+  const name = u.name || u.userId;
   $("#userName") && ($("#userName").textContent = name);
   $("#userAvatar") &&
     ($("#userAvatar").textContent = name
@@ -261,9 +263,9 @@ function initShell() {
 function initDashboard() {
   const u = initShell();
   if (!u) return;
-  const name = u.name || u.studentId,
-    courses = courseService.getCoursesByStudentId(u.studentId),
-    tasks = taskService.getTasksByStudentId(u.studentId) ?? [],
+  const name = u.name || u.userId,
+    courses = courseService.getCoursesByUserId(u.userId),
+    tasks = taskService.getTasksByUserId(u.userId) ?? [],
     smartRanked = smartService.rankTasks(tasks) ?? [],
     ranked = smartRanked.some((task) => Number.isFinite(task.manualOrder))
       ? [...smartRanked].sort((a, b) => (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER))
@@ -297,7 +299,7 @@ function initDashboard() {
     modal("Add course", courseForm(), (d, close) => {
       try {
         courseService.createCourse({
-          studentId: u.studentId,
+          userId: u.userId,
           courseName: d.get("courseName"),
           color: d.get("color"),
         });
@@ -322,7 +324,11 @@ function initDashboard() {
           .join("")
       : `<div class="empty">No pending tasks. You are caught up.</div>`;
     wireExpandable("#recommendList .expandable");
-    wireRecommendationSort($("#recommendList"), ranked);
+    wireTaskSort($("#recommendList"), ranked, () => {
+      $("#recommendList").querySelectorAll(".rank").forEach((rank, index) => (rank.textContent = index + 1));
+      $("#recommendList").querySelector("[data-recommended]")?.remove();
+      $("#recommendList").querySelector("[data-task-id] > div:nth-child(2)")?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
+    });
   };
   const close = () => {
     $("#recommendDrawer").classList.remove("open");
@@ -337,15 +343,20 @@ function initCourse() {
   if (!u) return;
   const courseId = new URLSearchParams(location.search).get("courseId"),
     course = courseService.getCourseById(courseId);
-  if (!course || course.studentId !== u.studentId) {
+  if (!course || course.userId !== u.userId) {
     location.href = "dashboard.html";
     return;
   }
   let filter = "all",
-    sort = "priority";
+    sort = "priority",
+    selectedTaskId = null;
   const render = () => {
     const raw = taskService.list(courseId),
-      all = raw.map((task) => smartService.enrich(task));
+      ranked = smartService.rankTasks(raw),
+      all = [
+        ...ranked,
+        ...raw.filter((task) => Number(task.currentProgress) === 100).map((task) => smartService.enrich(task)),
+      ];
     const counts = {
       pending: all.filter((t) => t.displayStatus === "pending").length,
       completed: all.filter((t) => t.displayStatus === "completed").length,
@@ -377,23 +388,20 @@ function initCourse() {
     let list = all.filter(
       (t) => filter === "all" || t.displayStatus === filter,
     );
-    const hasManualOrder = sort === "priority" && list.some((task) => Number.isFinite(task.manualOrder));
-    list.sort((a, b) =>
-      hasManualOrder
-        ? (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER)
-        : sort === "deadline"
+    if (sort !== "priority") list.sort((a, b) =>
+      sort === "deadline"
         ? new Date(a.deadline) - new Date(b.deadline)
         : sort === "importance"
           ? b.importanceScore - a.importanceScore
           : sort === "createdAt"
             ? new Date(b.createdAt) - new Date(a.createdAt)
-            : b.priorityScore - a.priorityScore,
+            : 0,
     );
     $("#taskList").innerHTML = list.length
       ? list
           .map(
             (t) =>
-              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""}" data-task-id="${t.taskId}" draggable="true" tabindex="0" aria-expanded="false"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(t.name)}</div><div class="task-sub"><span>${t.isOverdue ? "Overdue" : t.hasWorkloadWarning ? "Workload warning" : t.completionStatus === "completed" ? "Completed" : "In progress"}</span><i aria-hidden="true">&middot;</i><span>${dueLabel(t.deadline)}</span><span class="task-progress">${t.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong></div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div><aside class="task-preview"><small>Task details</small><strong>${esc(t.name)}</strong>${taskDetails(t)}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}</aside></article>`,
+              `<article class="card task-row ${t.completionStatus === "completed" ? "completed" : ""} ${selectedTaskId === t.taskId ? "details-open" : ""}" data-task-id="${t.taskId}" tabindex="0" aria-expanded="${selectedTaskId === t.taskId}"><button class="check ${t.completionStatus === "completed" ? "checked" : ""}" data-complete="${t.taskId}" aria-label="Toggle task completion">${t.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(t.name)}</div><div class="task-sub"><span>${t.isOverdue ? "Overdue" : t.hasWorkloadWarning ? "Workload warning" : t.completionStatus === "completed" ? "Completed" : "In progress"}</span><i aria-hidden="true">&middot;</i><span>${dueLabel(t.deadline)}</span><span class="task-progress">${t.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</strong></div><div class="task-actions"><button class="small-btn" data-edit="${t.taskId}" title="Edit task" aria-label="Edit task">&#9998;</button><button class="small-btn" data-delete="${t.taskId}" title="Delete task" aria-label="Delete task">&times;</button></div><aside class="task-preview"><div class="task-preview-inner"><small>Task details</small><strong>${esc(t.name)}</strong>${taskDetails(t, true)}</div></aside></article>`,
           )
           .join("")
       : `<div class="empty"><h3>${filter === "all" ? "No tasks yet" : "No matching tasks"}</h3><p>${filter === "all" ? "Add your first task to start tracking this course." : "Try another filter."}</p></div>`;
@@ -420,6 +428,7 @@ function initCourse() {
         (b.onclick = () => {
           if (confirm("Delete this task?")) {
             taskService.remove(b.dataset.delete);
+            if (selectedTaskId === b.dataset.delete) selectedTaskId = null;
             render();
           }
         }),
@@ -440,29 +449,19 @@ function initCourse() {
         }),
     );
     document.querySelectorAll(".task-row").forEach((row) => {
+      const details = row.querySelector(".task-preview");
+      details.style.setProperty("--details-height", `${details.scrollHeight}px`);
       row.onclick = (event) => {
-        if (event.target.closest("button")) return;
-        const open = !row.classList.contains("details-open");
+        if (event.target.closest("button") || row.dataset.justDragged) return;
+        const open = selectedTaskId !== row.dataset.taskId;
+        selectedTaskId = open ? row.dataset.taskId : null;
+        if (open) details.style.setProperty("--details-height", `${details.scrollHeight}px`);
         document.querySelectorAll(".task-row.details-open").forEach((item) => {
           item.classList.remove("details-open");
           item.setAttribute("aria-expanded", "false");
         });
         row.classList.toggle("details-open", open);
         row.setAttribute("aria-expanded", String(open));
-      };
-      row.ondragstart = (event) => {
-        event.dataTransfer.setData("text/plain", row.dataset.taskId);
-        event.dataTransfer.effectAllowed = "move";
-      };
-      row.ondragover = (event) => event.preventDefault();
-      row.ondrop = (event) => {
-        event.preventDefault();
-        const dragged = document.querySelector(`[data-task-id="${CSS.escape(event.dataTransfer.getData("text/plain"))}"]`);
-        if (!dragged || dragged === row) return;
-        row.before(dragged);
-        taskService.updateDisplayOrder([...document.querySelectorAll("#taskList [data-task-id]")].map((item) => item.dataset.taskId));
-        sort = "priority";
-        render();
       };
       row.onkeydown = (event) => {
         if ((event.key === "Enter" || event.key === " ") && event.target === row) {
@@ -471,6 +470,7 @@ function initCourse() {
         }
       };
     });
+    wireTaskSort($("#taskList"), list);
     $("#sortSelect").value = sort;
     $("#sortSelect").onchange = (e) => {
       sort = e.target.value;

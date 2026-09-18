@@ -1,4 +1,4 @@
-import { getTasksByStudentId, getTasksByCourseId } from "./taskService.js";
+import { getTasksByUserId, getTasksByCourseId } from "./taskService.js";
 
 // The number of milliseconds in a day, used to calculate the interval between days.
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -155,11 +155,11 @@ export function rankTasks(tasks) {
 }
 
 /**
- * Returns the task recommended as the next step across ALL of the student's courses
- * Returns null if the student has no remaining tasks to complete
+ * Returns the task recommended as the next step across ALL of the user's courses
+ * Returns null if the user has no remaining tasks to complete
  */
-export function getGlobalRecommendations(studentId) {
-  const tasks = getTasksByStudentId(studentId);
+export function getGlobalRecommendations(userId) {
+  const tasks = getTasksByUserId(userId);
   const rankedTasks = rankTasks(tasks);
 
   return rankedTasks.length > 0 ? rankedTasks[0] : null;
