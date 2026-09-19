@@ -9,8 +9,6 @@
 - Detect tasks that are becoming risky due to high urgency and remaining workload, and notify the student through workload warning notifications.
 - Use the student's available study time together with task priority and remaining workload to generate a recommended study schedule.
 
-> If Estimated Duration is not provided, the system uses a default duration of 3 hours.
-
 ## 2. Core Features (3 Standard Features)
 
 ### 2.1 Course Management (Actor: Student)
