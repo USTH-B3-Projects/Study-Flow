@@ -310,63 +310,6 @@ function initPageTransitions() {
   });
   addEventListener("pageshow", () => document.body.classList.remove("page-leaving"));
 }
-function initDashboardLegacy() {
-  $("#courseGrid").innerHTML = courses.length
-    ? courses
-        .map((c) => {
-          const ts = tasks.filter((t) => t.courseId === c.courseId),
-            done = ts.filter((t) => Number(t.currentProgress) === 100).length,
-            pct = taskService.getProgress(ts),
-            next = smartService.rankTasks(ts)?.[0];
-          return `<a class="card course-card" style="--course-color:${c.color || "var(--blue)"}" href="course.html?courseId=${encodeURIComponent(c.courseId)}"><div class="course-top"><div class="course-dot" style="background:${c.color || "#e9f2ff"}22;color:${c.color || "var(--blue)"}">${esc(c.courseName.slice(0, 1).toUpperCase())}</div><div><h3>${esc(c.courseName)}</h3><p>${ts.length} ${ts.length === 1 ? "task" : "tasks"}</p></div><span class="course-link" style="margin-left:auto">View course &rarr;</span></div><div class="progress" aria-label="${pct}% complete"><span style="width:${pct}%;background:${c.color || "var(--blue)"}"></span></div><div class="course-meta"><strong>${pct}% complete</strong><span>${done} completed · ${ts.length - done} remaining</span></div><div class="course-meta"><span>${next ? `Next: ${dueLabel(next.deadline)}` : "No pending tasks"}</span></div></a>`;
-        })
-        .join("")
-    : `<div class="empty" style="grid-column:1/-1"><h3>No courses yet</h3><p>Start by creating your first course.</p><button class="btn btn-primary" data-add-course>+ Add course</button></div>`;
-  const addCourse = () =>
-    modal("Add course", courseForm(), (d, close) => {
-      try {
-        courseService.createCourse({
-          userId: u.userId,
-          courseName: d.get("courseName"),
-          color: d.get("color"),
-        });
-        close();
-        initDashboard();
-        toast("Course added");
-      } catch (e) {
-        toast(e.message);
-      }
-    });
-  $("#addCourseBtn").onclick = addCourse;
-  $("[data-add-course]")?.addEventListener("click", addCourse);
-  const open = () => {
-    $("#recommendDrawer").classList.add("open");
-    $("#drawerBackdrop").classList.add("open");
-    $("#recommendList").innerHTML = ranked.length
-      ? ranked
-          .map((t, i) => {
-            const c = courses.find((x) => x.courseId === t.courseId);
-            return `<article class="recommend expandable" data-task-id="${t.taskId}" tabindex="0" aria-expanded="false"><div class="rank">${i + 1}</div><div>${i === 0 ? '<span class="status pending" data-recommended>Recommended next</span>' : ""}<h3>${esc(t.name)}</h3><p>${esc(c?.courseName || "Course")} · ${dueLabel(t.deadline)}</p><div class="recommend-meta"><span>Priority <b class="priority ${t.priorityScore >= 75 ? "high" : ""}">${Math.round(t.priorityScore)}</b></span><span>${t.remainingWorkload.toFixed(1)}h remaining</span>${t.hasWorkloadWarning ? '<span class="status warning">Workload warning</span>' : ""}${t.isOverdue ? '<span class="status overdue">Overdue</span>' : ""}</div>${taskDetails(t)}</div><a class="btn btn-primary" href="course.html?courseId=${encodeURIComponent(t.courseId)}">View course</a></article>`;
-          })
-          .join("")
-      : `<div class="empty">No pending tasks. You are caught up.</div>`;
-    $("#recommendList").querySelector("[data-recommended]")?.remove();
-    $("#recommendList").querySelector(`[data-task-id="${recommendedTaskId}"] > div:nth-child(2)`)?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
-    wireExpandable("#recommendList .expandable");
-    wireTaskSort($("#recommendList"), ranked, () => {
-      $("#recommendList").querySelectorAll(".rank").forEach((rank, index) => (rank.textContent = index + 1));
-      $("#recommendList").querySelector("[data-recommended]")?.remove();
-      $("#recommendList").querySelector(`[data-task-id="${recommendedTaskId}"] > div:nth-child(2)`)?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
-    });
-  };
-  const close = () => {
-    $("#recommendDrawer").classList.remove("open");
-    $("#drawerBackdrop").classList.remove("open");
-  };
-  $("#recommendBtn").addEventListener("click", open);
-  $("#closeDrawer").addEventListener("click", close);
-  $("#drawerBackdrop").addEventListener("click", close);
-}
 function initDashboard() {
   const u = initShell();
   if (!u) return;
