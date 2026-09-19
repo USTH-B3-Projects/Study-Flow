@@ -115,6 +115,12 @@ export function getTasksByCourseId(courseId) {
   return tasks.filter((task) => task.courseId === courseId);
 }
 
+export function getProgress(tasks) {
+  return tasks.length
+    ? Math.round(tasks.reduce((sum, task) => sum + Number(task.currentProgress || 0), 0) / tasks.length)
+    : 0;
+}
+
 export function getTaskById(taskId) {
   const tasks = getAllTasks();
   const task = tasks.find((t) => t.taskId === taskId);
