@@ -6,6 +6,7 @@ const LEGACY_USER_ID = "studentId";
 
 const VALID_PROGRESS_VALUES = [0, 25, 50, 75, 100];
 const VALID_IMPORTANCE_VALUES = ["very-low", "low", "medium", "high", "very-high"];
+const progressBeforeCompletion = new Map();
 
 function generateTaskId() {
   return crypto.randomUUID();
@@ -207,6 +208,18 @@ export function markTaskCompleted(taskId) {
   return updateTaskProgress(taskId, 100);
 }
 
+export function toggleTaskCompleted(taskId) {
+  const task = getTaskById(taskId);
+  if (!task) return null;
+  if (task.currentProgress === 100) {
+    const progress = progressBeforeCompletion.get(taskId) ?? 0;
+    progressBeforeCompletion.delete(taskId);
+    return updateTaskProgress(taskId, progress);
+  }
+  progressBeforeCompletion.set(taskId, task.currentProgress);
+  return updateTaskProgress(taskId, 100);
+}
+
 export function getOverdueTasks(userId) {
   const now = new Date();
   const userTasks = getTasksByUserId(userId);
@@ -224,3 +237,4 @@ export const list = getTasksByCourseId;
 export const update = updateTask;
 export const remove = deleteTask;
 export const setProgress = updateTaskProgress;
+export const toggleCompleted = toggleTaskCompleted;

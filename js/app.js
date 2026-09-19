@@ -28,12 +28,23 @@ const fmtDateTime = (d) =>
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(d));
+const localDateTimeValue = (d) => {
+  const date = new Date(d);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+};
 const dueLabel = (d) => {
-  const ms = new Date(d) - new Date(),
-    days = Math.ceil(ms / 86400000);
+  const deadline = new Date(d),
+    now = new Date(),
+    ms = deadline - now,
+    days =
+      (Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate()) -
+        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
+      86400000;
   if (ms < 0) return "Overdue";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
+  if (days === 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
   return `Due in ${days} days`;
 };
 const toast = (msg) => {
@@ -79,7 +90,7 @@ function taskForm(task = {}) {
   const custom = duration !== "" && !presets.includes(String(duration));
   const importance = ["very-low", "low", "medium", "high", "very-high"];
   const importanceIndex = Math.max(0, importance.indexOf(task.importance || "medium"));
-  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="2" placeholder="Add a note...">${esc(task.description)}</textarea></div></section><section class="planning"><div class="section-heading"><strong>Planning &amp; Prioritization</strong><small>Schedule &amp; effort</small></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (2h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; defaults to 2 hours</small></div></div><div class="form-field range-field"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very low|Low|Medium|High|Very high"><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></section><aside class="studyflow-hint"><b aria-hidden="true">&#10022;</b><span><strong>StudyFlow</strong> uses these details to calculate task priority and recommend what you should work on next.</span></aside></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
+  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="name" required value="${esc(task.name)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="2" placeholder="Add a note...">${esc(task.description)}</textarea></div></section><section class="planning"><div class="section-heading"><strong>Planning &amp; Prioritization</strong><small>Schedule &amp; effort</small></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? localDateTimeValue(task.deadline) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (2h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; defaults to 2 hours</small></div></div><div class="form-field range-field"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very low|Low|Medium|High|Very high"><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></section><aside class="studyflow-hint"><b aria-hidden="true">&#10022;</b><span><strong>StudyFlow</strong> uses these details to calculate task priority and recommend what you should work on next.</span></aside></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
 }
 function taskData(formData) {
   const data = Object.fromEntries(formData);
@@ -269,7 +280,8 @@ function initDashboard() {
     smartRanked = smartService.rankTasks(tasks) ?? [],
     ranked = smartRanked.some((task) => Number.isFinite(task.manualOrder))
       ? [...smartRanked].sort((a, b) => (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER))
-      : smartRanked;
+      : smartRanked,
+    recommendedTaskId = smartRanked[0]?.taskId;
   $("#greeting").textContent = `Good morning, ${name}`;
   const completed = tasks.filter(
       (t) => Number(t.currentProgress) === 100,
@@ -323,11 +335,13 @@ function initDashboard() {
           })
           .join("")
       : `<div class="empty">No pending tasks. You are caught up.</div>`;
+    $("#recommendList").querySelector("[data-recommended]")?.remove();
+    $("#recommendList").querySelector(`[data-task-id="${recommendedTaskId}"] > div:nth-child(2)`)?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
     wireExpandable("#recommendList .expandable");
     wireTaskSort($("#recommendList"), ranked, () => {
       $("#recommendList").querySelectorAll(".rank").forEach((rank, index) => (rank.textContent = index + 1));
       $("#recommendList").querySelector("[data-recommended]")?.remove();
-      $("#recommendList").querySelector("[data-task-id] > div:nth-child(2)")?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
+      $("#recommendList").querySelector(`[data-task-id="${recommendedTaskId}"] > div:nth-child(2)`)?.insertAdjacentHTML("afterbegin", '<span class="status pending" data-recommended>Recommended next</span>');
     });
   };
   const close = () => {
@@ -416,10 +430,7 @@ function initCourse() {
       (b) =>
         (b.onclick = () => {
           const t = raw.find((x) => x.taskId === b.dataset.complete);
-          taskService.setProgress(
-            t.taskId,
-            t.currentProgress === 100 ? 0 : 100,
-          );
+          taskService.toggleCompleted(t.taskId);
           render();
         }),
     );
