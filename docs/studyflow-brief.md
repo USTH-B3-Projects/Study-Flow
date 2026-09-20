@@ -2,10 +2,12 @@
 
 ## 1. Problem Idea
 
-- **Overview:** Help students organize courses, manage tasks and deadlines, track study progress, and determine which tasks should be completed first.
-- **More important factors differentiate StudyFlow from a traditional to-do list:** Define deadline, importance level, current progress, and optionally estimated duration to calculate task priority and recommend what should be done next.
+**Overview:** Help students organize courses, manage tasks and deadlines, track study progress, and determine which tasks should be completed first.
 
-> If Estimated Duration is not provided, the system provides some options for user to pick.
+**More important factors differentiate StudyFlow from a traditional to-do list:** 
+- Define deadline, importance level, estimated duration, and current progress to calculate task priority and recommend what should be done next.
+- Detect tasks that are becoming risky due to high urgency and remaining workload, and notify the student through workload warning notifications.
+- Use the student's available study time together with task priority and remaining workload to generate a recommended study schedule.
 
 ## 2. Core Features (3 Standard Features)
 
@@ -23,7 +25,7 @@
 - Create, Edit, Delete
 - Set deadlines
 - Update task progress
-- Set Estimate Duration (optional)
+- Set Estimate Duration (predefined options/custome value)
 - Specify importance
 - Mark completed
 - View overdue tasks
@@ -38,9 +40,9 @@
 
 ### Authentication – Supporting Functionality
 
-- Registration requires user full name, unique username, password, and password confirmation.
-- Login uses user ID and password. Password reset requires username, new password, and confirmation.
-- After a successful reset, the old password is invalidated and a new one is generated.
+- Registration requires student full name, unique username, password, and password confirmation.
+- Login uses username and password. Password reset requires username, new password, and confirmation.
+- After a successful reset, the old password is replaced by the new password.
 
 ## 3. Smart Features (Actor: System)
 
@@ -52,8 +54,8 @@ Smart Task Prioritization differentiates StudyFlow from a traditional to-do list
 | --- | --- |
 | User provides | Deadline; importance level; current progress; estimated duration |
 | System derives | Urgency score; importance score; remaining workload; workload score; overdue status |
-| Estimated duration | Input value or self-choosing based on recommendation |
-| System calculates | Priority score (0–100), then automatically ranks pending tasks (User can change the recommended list depend on their choice) |
+| Estimated duration | Input value or self-choosing based on predefined options |
+| System calculates | Priority score (0–100), then automatically ranks pending tasks (Student can change the recommended list depend on their choice) |
 | Outputs | Priority Score; Automatic Task Ranking; Recommended Next Task; Workload Warning |
 
 Overdue Status is not used as an additional factor in the Priority formula. However, overdue tasks receive an Urgency Score of 100 based on their deadline.
@@ -102,7 +104,7 @@ Workload score is calculated from Remaining Workload.
 With formula:
 
 $$
-\text{Remaining Workload} = \text{Effective Duration} \times \left(1 - \frac{\text{Current Progress}}{100}\right)
+\text{Remaining Workload} = \text{Estimated Duration} \times \left(1 - \frac{\text{Current Progress}}{100}\right)
 $$
 
 | Current Progress | Current Progress Mark |
@@ -155,9 +157,27 @@ Suggested rule:
 3. Importance DESC
 4. Created Time ASC
 
-### 3.3 Workload Warning
+### 3.3 Workload Warning & Notification
 
-Workload Warning identifies which task is becoming risky because it still requires a lot of work and its deadline is approaching.
+Workload Warning detects tasks that still have a large amount of work remaining while their deadlines are approaching.
+
+Unlike Priority Ranking, which determines what should be done first, Workload Warning identifies tasks that are becoming risky because of the combination of workload and urgency.
+
+When a task satisfies the Workload Warning condition, the system displays a warning notification to alert the student.
+
+Notification contains: 
+- Task name
+- Deadline
+- Remaining workload
+- Warning message
+
+Example:
+
+⚠️ Workload Warning
+
+Finish DL Lab still requires approximately 5 hours of work and is due tomorrow.
+
+The notification is generated from the existing Workload Warning result and does not require a separate priority calculation.
 
 **Input:** Reuse Smart Task Prioritization data: Deadline, Estimated Duration, Current Progress.
 
@@ -167,16 +187,61 @@ Workload Warning identifies which task is becoming risky because it still requir
 
 1. If the task is **COMPLETED** → no warning.
 2. Else if the task is **OVERDUE** → show **OVERDUE**.
-3. Else if Estimated Duration is not provided by the user → cannot calculate Workload Warning.
-4. Else if `(U >= 80 AND W >= 60) OR (U >= 60 AND W >= 80)` → show **WORKLOAD WARNING**.
+4. Else if `(U >= 80 AND W >= 60) OR (U >= 60 AND W >= 80)` → show 
 
-Workload Warning detects tasks that still have a large amount of work remaining while their deadlines are approaching. Unlike Priority Ranking, which determines what should be done first, Workload Warning tells the user which tasks are becoming risky because of the combination of workload and urgency.
+**Functions:** `calculateRemainingWorkload()`, `getWorkloadScore()`, `hasWorkloadWarning()`, `getWarningNotification()`
 
-**Functions:** `calculateRemainingWorkload()`, `getWorkloadScore()`, `hasWorkloadWarning()`
+### 3.4 Smart Study Scheduling
+
+Smart Study Scheduling converts the ranked task list into a suggested study plan based on the student's available study time.
+
+#### Input
+
+The system reuses task information from Smart Task Prioritization:
+
+- Deadline
+- Importance
+- Estimated Duration
+- Current Progress
+- Priority Score
+
+Additional user input: `Available Study Time`
+
+#### Processing
+
+1. Calculate or retrieve the remaining workload of each active task.
+2. Rank tasks using the existing Smart Task Prioritization algorithm.
+3. Allocate the student's available study time to higher-priority tasks first.
+4. Continue allocating time to the next ranked task if available study time remains.
+
+The scheduling feature does not change the Priority Score. It uses the existing task ranking to determine how the available study time should be distributed.
+
+#### Output
+
+The system generates a recommended study schedule showing:
+
+* Recommended task
+* Suggested study duration
+* Task order
+* Remaining workload after the suggested study session
+
+Example:
+
+Available Study Time: **4 hours**
+
+1. Finish DL Lab — 2.5h
+2. Review Web App Lecture — 1h
+3. Prepare DSP Exercise — 0.5h
+
+If the total remaining workload is greater than the student's available study time, the system prioritizes the highest-ranked tasks and leaves the remaining tasks for a later study period.
+
+Functions:
+
+`generateStudySchedule(tasks, availableStudyTime)`
+
 
 ## 4. Future Work for the Mobile App Development Course Version
 
-- Stronger authentication - reset password via an external provider (email)
-- Mobile Notifications and Reminders
-- Subtask management and Automatic Progress Tracking
-- Personalized Workload Estimation (use historical study data to improve Estimated Duration when sufficient user history becomes available)
+- **Current Web:** Workload warning notification appears inside StudyFlow.
+- **Future Mobile:** Push notifications/reminders can notify the student even when the application is not currently open.
+- Stronger authentication (using email validation).
