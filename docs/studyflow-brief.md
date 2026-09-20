@@ -54,7 +54,7 @@ Smart Task Prioritization differentiates StudyFlow from a traditional to-do list
 | --- | --- |
 | User provides | Deadline; importance level; current progress; estimated duration |
 | System derives | Urgency score; importance score; remaining workload; workload score; overdue status |
-| Estimated duration | Input value or self-choosing based on predefined options |
+| Estimated duration | Custom input, predefined option, or default 2h if not provided |
 | System calculates | Priority score (0–100), then automatically ranks pending tasks (Student can change the recommended list depend on their choice) |
 | Outputs | Priority Score; Automatic Task Ranking; Recommended Next Task; Workload Warning |
 
@@ -115,7 +115,7 @@ $$
 | Almost done | 75 |
 | Completed | 100 |
 
-**Explanation for the Optional Estimated Duration:** Estimated Duration is optional because users may not always be able to accurately estimate how long a task will take. If no duration is provided, StudyFlow uses a neutral default duration of **3 hours**. This default allows all tasks to use the same Priority formula and remain comparable in both local and global task rankings. The default value is only a fallback estimate and does not represent the actual duration of the task.
+**Explanation for the Optional Estimated Duration:** Estimated Duration is optional because users may either enter a custom value, choose from predefined duration options, or leave it unspecified. If no duration is provided, StudyFlow uses a neutral default duration of **2 hours**. This default allows all tasks to use the same Priority formula and remain comparable in both local and global task rankings. The default value is only a fallback estimate and does not represent the actual duration of the task.
 
 **Future work in the mobile version:** Study timer and actual study duration to provide more accurate workload estimation and reduce reliance on manually estimated duration.
 
