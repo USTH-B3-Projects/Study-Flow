@@ -235,27 +235,20 @@
 
 /* Cozy dashboard composition */
 body[data-page="dashboard"] { overflow-x: clip; }
+body[data-page="dashboard"]::before {
+  background-image: url("../source/background/dashboard_light.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+[data-theme="dark"] body[data-page="dashboard"]::before {
+  background-image: url("../source/background/dashboard_dark.png");
+}
 .dashboard-main {
   position: relative;
   padding: 28px 0 76px;
 }
-.dashboard-main::before,
-.dashboard-main::after {
-  content: "";
-  position: fixed;
-  z-index: -1;
-  width: 240px;
-  height: 240px;
-  border-radius: 48% 52% 65% 35%;
-  filter: blur(1px);
-  opacity: .48;
-  pointer-events: none;
-}
-.dashboard-main::before { top: 96px; right: -110px; background: #ddecff; }
-.dashboard-main::after { bottom: 54px; left: -130px; background: #f9e5ed; }
-.page-decoration { position: absolute; z-index: -1; pointer-events: none; user-select: none; }
-.page-plant { top: 120px; left: -112px; width: 96px; }
-.page-sparkles { right: -64px; bottom: 32px; width: 42px; }
 .dash-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px auto;
@@ -469,8 +462,6 @@ body[data-page="dashboard"] { overflow-x: clip; }
 .course-empty { grid-column: 1 / -1; padding: 24px; }
 .course-empty img { width: 100px; }
 
-[data-theme="dark"] .dashboard-main::before,
-[data-theme="dark"] .dashboard-main::after { opacity: .12; }
 [data-theme="dark"] .recommendation-card { border-color: #55333b; border-left-color: var(--danger); background: linear-gradient(120deg, #251c28, #241f2b); }
 [data-theme="dark"] .hero-note,
 [data-theme="dark"] .recommendation-side img { opacity: .82; }
@@ -494,7 +485,6 @@ body[data-page="dashboard"] { overflow-x: clip; }
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: 1fr; }
   .course-grid { grid-template-columns: repeat(2, 1fr); }
-  .page-decoration { display: none; }
   .recommendation-card { grid-template-columns: minmax(0, 1fr) 180px 96px; gap-inline: 16px; }
   .recommendation-side img { width: 92px; }
   .priority-badge { right: 126px; }
