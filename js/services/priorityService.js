@@ -51,7 +51,7 @@ function calculateImportanceScore(importance) {
   return scoreMap[importance] !== undefined ? scoreMap[importance] : 60;
 }
 
-function calculateRemainingWorkload(estimatedDuration, currentProgress) {
+export function calculateRemainingWorkload(estimatedDuration, currentProgress) {
   const effectiveDuration =
     estimatedDuration === null || estimatedDuration === undefined
       ? DEFAULT_EFFECTIVE_DURATION
