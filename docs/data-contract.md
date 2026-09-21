@@ -18,53 +18,50 @@ values, and relationships defined in this document.
 - Missing optional value: null
 - All IDs must be unique
 
-## 3. User
+## 3. Student
 
 <b>Register Input</b>
 
 | Field | Type | Required | Default | Stored? | Description |
 |---|---|---:|---|---|---|
-| fullname | String | Yes | null | Yes | User's display name |
-| userId | String | Yes | null | Yes | Unique login identifier |
+| studentName | String | Yes | null | Yes | Student's display name |
+| username | String | Yes | null | Yes | Unique login identifier |
 | password | String | Yes | null | Yes | Password for prototype authentication |
 | confirmPassword | String | Yes | null | No | Must match `password` |
-
-After successful registration, the system generates a recovery code.
-The original recovery code is shown to the user once and is not stored directly.
 
 <b>Login Input</b>
 | Field | Type | Required | Description |
 |---|---|---:|---|
-| userId | String | Yes | User ID used for login |
+| username | String | Yes | Student username used for login |
 | password | String | Yes | Account password |
 
 <b>Reset Password Input</b>
 | Field | Type | Required | Stored? | Description |
 |---|---|---:|---|---|
-| userId | String | Yes | No | Identifies the account |
+| username | String | Yes | No | Identifies the account |
 | newPassword | String | Yes | Yes | Replaces the current password after successful validation |
 | confirmPassword | String | Yes | No | Must match `newPassword` |
 
-<b>Stored User Data</b>
+<b>Stored Student Data</b>
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
-| fullname | String | Yes | null | User's display name |
-| userId | String | Yes | null | Unique identifier used for login |
+| studentName | String | Yes | null | Student's display name |
+| username | String | Yes | null | Unique identifier used for login |
 | password | String | Yes | null | Password for prototype authentication |
 
 ### Account Validation
 
-- `fullname` must not be empty, must be trimmed before being stored.
+- `studentName` must not be empty, must be trimmed before being stored.
 - `password` must meet the minimum length of 8 characters.
 - `confirmPassword` must match `password` and must not be stored.
 - `newPassword` must meet the minimum length of 8 characters.
 
 <!--
-Stored User example:
+Stored Student example:
 
 {
-  "fullname": "John Doe",
-  "userId": "johndoe123",
+  "studentName": "John Doe",
+  "usernam": "johndoe123",
   "password": "demo-password",
 }
 -->
@@ -74,19 +71,19 @@ Stored User example:
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | courseId | String | Yes | Generated | Unique course identifier |
-| userId | String | Yes | null | User ID of the course owner |
+| username | String | Yes | null | username of the course owner |
 | courseName | String | Yes | null | Course name |
 | color | String or null | No | null | Optional course display color |
 
 ### Course Validation
 
 - `courseName` must not be empty.
-- `userId` must refer to an existing user.
+- `username` must refer to an existing student.
 - `color` must be a valid CSS color if provided.
 
 <!--{
   "courseId": "course-001",
-  "userId": "johndoe123",
+  "username": "johndoe123",
   "courseName": "Deep Learning",
   "color": "#6C63FF"
 }
@@ -113,9 +110,9 @@ Stored User example:
 - `deadline` must be a valid date.
 - `estimatedDuration` must be greater than 0 when provided.
 - `estimatedDuration` must remain null if the user does not provide it.
-- The default value of 3 hours is applied only to `effectiveDuration`.
+- The default value of 2 hours is applied only when calculating remaining workload.
 - `currentProgress` must be one of: 0, 25, 50, 75, 100.
-- `completionStatus` is derived from `currentProgress` and is not stored.
+- `taskStatus` is derived from `currentProgress` and `deadline` and is not stored.
 - `displayStatus` is derived from `currentProgress` and `deadline` and is not stored.
 
 <!--
@@ -167,14 +164,7 @@ Stored User example:
 | high | 80 |
 | very-high | 100 |
 
-### CompletionStatus
-
-| Value | Meaning |
-|---|---|
-| pending | Progress is below 100 |
-| completed | Progress is 100 |
-
-### DisplayStatus
+### TaskStatus
 
 | Value | Meaning |
 |---|---|
@@ -203,60 +193,86 @@ Stored User example:
 
 ## 7. Derived Task Values
 
-The following values are calculated by `smartService.js`.
-They are not entered directly by the user.
+The following values are calculated by relevant smart feature services and are not stored.
 
 | Field | Type | Stored? | Description |
 |---|---|---:|---|
-| effectiveDuration | Number | No | User duration or default 3 hours |
 | urgencyScore | Number | No | Calculated from deadline |
 | importanceScore | Number | No | Converted from importance level |
 | remainingWorkload | Number | No | Remaining estimated work |
 | workloadScore | Number | No | Calculated from remaining workload |
 | priorityScore | Number | No | Final priority score |
-| completionStatus | CompletionStatus | No | Derived from currentProgress |
-| isOverdue | Boolean | No | Whether deadline has passed & task is incomplete |
-| displayStatus | DisplayStatus | No | Status displayed on the interface |
+| taskStatus | TaskStatus | No | derived task status |
 | hasWorkloadWarning | Boolean | No | Whether the task is at risk |
 
-<b>effectiveDuration:</b>
+**remainingWorkload:**
 <br>
-If estimatedDuration is provided: effectiveDuration = estimatedDuration
-<br>
-Otherwise: effectiveDuration = 3
+If estimatedDuration is provided:
+    remainingWorkload =
+        estimatedDuration × (1 - currentProgress / 100)
 
-<b>remainingWorkload:</b>
-<br>
-remainingWorkload = effectiveDuration × (1 - currentProgress / 100)
+Otherwise:
+    remainingWorkload =
+        2 × (1 - currentProgress / 100)
 
-<b>priorityScore:</b>
+**priorityScore:**
 <br>
 priorityScore = 0.5 × urgencyScore + 0.3 × importanceScore + 0.2 × workloadScore
 
-<b>workloadWarning:</b>
+**taskStatus:**
 <br>
-If completionStatus is completed: No warning
+if currentProgress == 100
+    status = completed
+
+else if deadline has passed
+    status = overdue
+
+else
+    status = pending
+
+**workloadWarning:**
 <br>
-Else if task is overdue: Show overdue status
-<br>
-Else if estimatedDuration is null: Do not calculate workload warning
-<br>
+If status == completed
+    no warning
+
+Else if status == overdue
+    show overdue
+
 Else if
     (urgencyScore >= 80 AND workloadScore >= 60)
     OR
-    (urgencyScore >= 60 AND workloadScore >= 80): Show workload warning
-<br>
+    (urgencyScore >= 60 AND workloadScore >= 80)
+    show workload warning
+
 Else
-    No workload warning
+    no warning
 
-## 8. Relationships
+## 8. WarningNotification (no stored data)
 
-- One User can have zero or many Courses.
-- One Course belongs to exactly one User, identified by `userId`.
+| Field | Type | Description |
+|---|---|---|
+| taskName | String | Name of risky task |
+| deadline | ISO Date String | Task deadline |
+| remainingWorkload | Number | Remaining estimated hours |
+| message | String | Warning shown to student |
+
+## 9. StudyScheduleItem (no stored data)
+
+| Field | Type | Stored? | Description |
+|---|---|---:|---|
+| task | Task | No | Task included in schedule |
+| suggestedDuration | Number | No | Recommended study duration |
+| order | Number | No | Position in suggested plan |
+| remainingWorkloadAfter | Number | No | Remaining workload after suggested session |
+
+## 10. Relationships
+
+- One Student can have zero or many Courses.
+- One Course belongs to exactly one Student, identified by username.
 - One Course can have zero or many Tasks.
 - One Task belongs to exactly one Course, identified by courseId.
 
-## 9. Deletion Rules
+## 11. Deletion Rules
 
 ### Delete Course
 
@@ -269,14 +285,14 @@ are deleted.
 
 Before deleting a task, the system must display a confirmation.
 
-## 10. Local Storage
+## 12. Local Storage
 
 | Key | Value Type | Description |
 |---|---|---|
-| studyflow_users | Array<User> | Registered users |
+| studyflow_users | Array<Student> | Registered students |
 | studyflow_courses | Array<Course> | All courses |
 | studyflow_tasks | Array<Task> | All tasks |
-| studyflow_current_user | String or null | User ID of logged-in user |
+| studyflow_current_user | String or null | username of logged-in student |
 
 <!--
 Initial data:
@@ -289,15 +305,16 @@ Initial data:
 -->
 
 
-## 11. Recommended Task View
+## 13. Recommended Task View
 
 `smartService.js` combines stored Task data with calculated values.
 
 ### Recommendation Sorting
 
-Only pending tasks are included in recommendation ranking.
+`PriorityService` combines stored Task data with calculated priority values.
 
-Completed tasks are excluded from Recommendation ranking.
+All non-completed tasks are included in recommendation ranking.
+Completed tasks are excluded.
 
 Tasks are sorted by:
 
@@ -319,16 +336,13 @@ Tasks are sorted by:
   "estimatedDuration": 6,
   "currentProgress": 50,
 
-  "effectiveDuration": 6,
+  "estimatedDuration": 6,
   "remainingWorkload": 3,
   "urgencyScore": 80,
   "importanceScore": 80,
   "workloadScore": 60,
   "priorityScore": 76,
-
-  "completionStatus": "pending",
-  "isOverdue": false,
-  "displayStatus": "pending",
+  "status": "pending",
   "hasWorkloadWarning": true
 }
 -->
