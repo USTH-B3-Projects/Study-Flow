@@ -1,6 +1,10 @@
-import { rankTasks, calculateRemainingWorkload } from "./smartService.js";
+import { rankTasks, calculateRemainingWorkload } from "./priorityService.js";
 
 export function generateStudySchedule(tasks, availableStudyTime) {
+  if (!Array.isArray(tasks) || typeof availableStudyTime !== "number" || availableStudyTime <= 0) {
+    return [];
+  }
+
   const rankedTasks = rankTasks(tasks);
 
   const schedule = [];
