@@ -295,6 +295,7 @@ function initShell() {
 function initPageTransitions() {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const isPageLink = (link) => link.origin === location.origin && /\/(dashboard|course)\.html$/.test(link.pathname);
+  const hasNativePageTransitions = /^https?:$/.test(location.protocol) && CSS.supports("selector(:active-view-transition)");
   document.addEventListener("pointerenter", (event) => {
     const link = event.target.closest?.("a[href]");
     if (link && isPageLink(link)) fetch(link.href, { priority: "low" }).catch(() => {});
@@ -304,6 +305,12 @@ function initPageTransitions() {
     if (!link || !isPageLink(link) || link.target || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const destination = new URL(link.href);
     if (destination.href === location.href) return;
+    const courseId = destination.searchParams.get("courseId");
+    const courseCard = courseId && link.closest(".course-card");
+    if (courseCard && CSS.supports("view-transition-name: none")) {
+      courseCard.style.viewTransitionName = `course-${courseId}`;
+    }
+    if (hasNativePageTransitions) return;
     event.preventDefault();
     document.body.classList.add("page-leaving");
     setTimeout(() => location.href = destination.href, 140);
@@ -423,6 +430,9 @@ function initCourse() {
     const progress = taskService.getProgress(all);
     $("#courseHero").innerHTML =
       `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.courseName)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
+    if (CSS.supports("view-transition-name: none")) {
+      $("#courseHero .course-hero").style.viewTransitionName = `course-${courseId}`;
+    }
     $("#courseStats").innerHTML =
       `<article class="card course-stat"><span>Pending</span><strong>${counts.pending}</strong></article><article class="card course-stat"><span>Completed</span><strong style="color:var(--green)">${counts.completed}</strong></article><article class="card course-stat"><span>Overdue</span><strong style="color:var(--red)">${counts.overdue}</strong></article>`;
     $("#warningArea").innerHTML = warningList(smartService.getWorkloadWarning(raw));

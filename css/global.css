@@ -247,11 +247,42 @@ button {
   pointer-events: none;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: 180ms ease-in both pageOut;
+}
+
+::view-transition-new(root) {
+  animation: 260ms ease-out both pageIn;
+}
+
+::view-transition-group(*) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes pageOut {
+  to {
+    opacity: 0;
+    transform: scale(.985);
+  }
+}
+
+html:active-view-transition .page-enter { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .page-leaving .page-enter {
     animation: none;
     transition: none;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
   }
 }
 .card {
@@ -285,7 +316,6 @@ button {
   background: var(--red-soft);
   color: var(--red);
 }
-.status.medium { background: var(--amber-soft); color: var(--warning); }
 .status.medium {
   background: var(--amber-soft);
   color: var(--amber);

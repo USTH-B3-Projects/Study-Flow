@@ -15,7 +15,6 @@
 }
 .course-management-head p { margin: 0; color: var(--text-secondary); font-size: 17px; }
 .management-card { display: flex; flex-direction: column; }
-.management-card .course-meta { margin-bottom: 20px; }
 .management-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
 .management-actions .btn { min-height: 39px; padding-inline: 14px; font-size: 13px; }
 
@@ -173,6 +172,7 @@ body[data-page="course"]::after {
   gap: 16px;
 }
 .course-title .course-dot {
+  flex: 0 0 auto;
   width: 68px;
   height: 68px;
   border-radius: 50%;
@@ -494,14 +494,6 @@ body[data-page="course"]::after {
 .toolbar-actions .select {
   width: auto;
 }
-.task-modal-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 13px;
-}
-.task-modal-grid .wide {
-  grid-column: 1/-1;
-}
 @media (max-width: 900px) {
   .task-row {
     grid-template-columns: 28px minmax(0, 1fr) auto auto;
@@ -561,11 +553,5 @@ body[data-page="course"]::after {
   }
   .task-preview dl {
     grid-template-columns: 1fr;
-  }
-  .task-modal-grid {
-    grid-template-columns: 1fr;
-  }
-  .task-modal-grid .wide {
-    grid-column: auto;
   }
 }

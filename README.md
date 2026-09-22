@@ -17,7 +17,7 @@ StudyFlow calculates task priority based on:
 - Current progress
 - Estimated duration (optional)
 
-If estimated duration is not provided, the system uses a default effective duration of 2h for priority calculation.
+If estimated duration is not provided, the system uses a default effective duration of 3h for priority calculation.
 
 ## Data Storage
 StudyFlow uses browser `localStorage` for prototype data persistence.
@@ -69,11 +69,6 @@ studyflow/
 │   │   ├── courseService.js
 │   │   ├── taskService.js
 │   │   └── smartService.js
-│   │
-│   └── ui/
-│       ├── dashboardUI.js
-│       ├── courseUI.js
-│       └── taskUI.js
 │
 ├── docs/
 │   ├── studyflow-brief.pdf
