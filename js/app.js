@@ -317,41 +317,34 @@ function initPageTransitions() {
   });
   addEventListener("pageshow", () => document.body.classList.remove("page-leaving"));
 }
-function initDashboard() {
+function initTaskDashboard() {
   const u = initShell();
   if (!u) return;
   const hour = new Date().getHours();
   const salutation = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  $("#greeting").innerHTML = `${salutation},<span>${esc(u.name || u.userId)} <span class="greeting-wave" aria-hidden="true">👋</span></span>`;
+  $("#greeting").innerHTML = `${salutation},<span>${esc(u.name || u.userId)} <span class="greeting-wave" aria-hidden="true">&#128075;</span></span>`;
   const render = () => {
-    const courses = courseService.getCoursesByUserId(u.userId), tasks = taskService.getTasksByUserId(u.userId) ?? [],
-      enriched = tasks.map(smartService.enrich), recommended = smartService.getGlobalRecommendations(u.userId),
-      completed = enriched.filter((t) => t.completionStatus === "completed").length, pending = tasks.length - completed,
-      overdue = enriched.filter((t) => t.isOverdue).length,
-      progress = taskService.getProgress(tasks),
-      attention = enriched.filter((t) => t.isOverdue || t.hasWorkloadWarning).sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 3);
-    const recommendedCourse = recommended && courses.find((course) => course.courseId === recommended.courseId),
-      recommendationStatus = recommended?.isOverdue ? "overdue" : recommended?.hasWorkloadWarning ? "warning" : "normal";
-    $("#recommendedTask").innerHTML = recommended
-      ? `<article class="card recommendation-card ${recommendationStatus}"><div class="recommendation-header"><div class="eyebrow">🔥 Recommended next</div><span class="priority-badge">▥ Priority ${Math.round(recommended.priorityScore)}</span></div><div class="recommendation-copy"><h2>${esc(recommended.name)}</h2><p class="recommendation-course">${esc(recommendedCourse?.courseName || "Course")}</p><p class="recommendation-meta">${recommended.isOverdue ? '<span class="recommendation-status overdue">Overdue</span>' : recommended.hasWorkloadWarning ? '<span class="recommendation-status warning">Workload warning</span>' : `<span>${dueLabel(recommended.deadline)}</span>`}<span>~${recommended.remainingWorkload.toFixed(1)}h remaining</span><span>Due ${fmtDate(recommended.deadline)}</span></p><div class="recommendation-progress"><strong>${recommended.currentProgress}% completed</strong><div class="progress" aria-label="${recommended.currentProgress}% complete"><span style="width:${recommended.currentProgress}%"></span></div></div></div><div class="recommendation-side"><img src="../source/studyflow-note/note-progress.png" alt="" aria-hidden="true"><a class="btn btn-primary" href="course.html?courseId=${encodeURIComponent(recommended.courseId)}">${Number(recommended.currentProgress) === 0 ? "Start" : "Continue"} task &rarr;</a></div></article>`
-      : `<article class="card recommendation-card empty-state"><div class="recommendation-header"><div class="eyebrow">✨ Recommended next</div></div><div class="recommendation-copy"><h2>You're all caught up!</h2><p class="recommendation-course">No pending tasks right now.</p></div><img class="empty-mascot" src="../source/studyflow-mascot-pack/cat-celebrating.png" alt="Celebrating StudyFlow cat"></article>`;
-    $("#stats").innerHTML = `<article class="stat"><span class="stat-icon pending-icon" aria-hidden="true">↥</span><strong>${pending}</strong><span>Pending tasks</span></article><article class="stat overdue-stat"><span class="stat-icon" aria-hidden="true">!</span><strong>${overdue}</strong><span>Overdue tasks</span></article>`;
-    $("#attentionArea").innerHTML = `<article class="card overview-card attention-card"><div class="overview-head"><div><span class="section-icon warning-color" aria-hidden="true">!</span><h2>Needs Attention</h2></div><span class="overview-caption">Sorted by urgency</span></div><div class="attention-list">${attention.length ? attention.map((t) => { const course = courses.find((item) => item.courseId === t.courseId); return `<div class="attention-task"><button class="task-check" type="button" data-dashboard-complete="${t.taskId}" aria-label="Mark ${esc(t.name)} complete"></button><a href="course.html?courseId=${encodeURIComponent(t.courseId)}"><strong>${esc(t.name)}</strong><small>${dueLabel(t.deadline)} &nbsp;·&nbsp; ${t.currentProgress}% completed${course ? ` &nbsp;·&nbsp; ${esc(course.courseName)}` : ""}</small></a><span class="status ${t.isOverdue ? "overdue" : "medium"}">${t.isOverdue ? "Overdue" : "Workload warning"}</span><span class="row-arrow" aria-hidden="true">›</span></div>`; }).join("") : `<div class="mini-empty"><img src="../source/studyflow-mascot-pack/cat-good-job.png" alt=""><strong>You're all caught up.</strong><span>No tasks currently need attention.</span></div>`}</div></article>`;
-    $("#progressArea").innerHTML = `<article class="card overview-card progress-card"><div class="overview-head"><div><span class="section-icon" aria-hidden="true">▥</span><h2>Your Progress</h2></div></div><div class="progress-summary"><div class="progress-ring" style="--progress:${progress}" role="img" aria-label="${progress}% overall progress"><span>${progress}%</span></div><div><p>Overall completion</p><div class="progress-value">${progress}%</div><div class="progress progress-large" aria-hidden="true"><span style="width:${progress}%"></span></div><div class="progress-counts"><strong>${completed} completed</strong><span>${pending} remaining</span></div></div></div><div class="progress-message"><img src="../source/studyflow-decoration-pack/plant-kawaii.png" alt="" aria-hidden="true"><span><strong>${progress === 100 ? "Beautiful work!" : "You're getting there!"}</strong> Keep going, you've got this.</span></div></article>`;
-    $("#courseOverview").innerHTML = courses.length ? courses.slice(0, 3).map((course) => { const courseTasks = tasks.filter((task) => task.courseId === course.courseId), done = courseTasks.filter((task) => Number(task.currentProgress) === 100).length, courseProgress = taskService.getProgress(courseTasks); return `<a class="card course-card" style="--course-color:${course.color || "var(--blue)"}" href="course.html?courseId=${encodeURIComponent(course.courseId)}"><div class="course-top"><span class="course-initial" aria-hidden="true">${esc(course.courseName.slice(0, 1).toUpperCase())}</span><h3>${esc(course.courseName)}</h3><span class="row-arrow" aria-hidden="true">›</span></div><div class="course-progress-label"><span>${done} completed &nbsp;·&nbsp; ${courseTasks.length - done} remaining</span><strong>${courseProgress}%</strong></div><div class="progress" aria-label="${courseProgress}% complete"><span style="width:${courseProgress}%;background:${course.color || "var(--blue)"}"></span></div></a>`; }).join("") : `<div class="empty course-empty"><img src="../source/studyflow-mascot-pack/cat-reading.png" alt=""><h3>No courses yet</h3><p>Create your first course from the Courses page.</p><a class="btn btn-primary" href="course.html">Go to courses</a></div>`;
-    document.querySelectorAll("[data-dashboard-complete]").forEach((button) => button.onclick = () => {
-      taskService.toggleCompleted(button.dataset.dashboardComplete);
-      render();
-    });
-  };
-  $("#nextTaskBtn").onclick = () => {
-    $("#recommendedTask").scrollIntoView({ behavior: "smooth", block: "center" });
-    $("#recommendedTask").focus({ preventScroll: true });
+    const tasks = taskService.getTasksByUserId(u.userId) ?? [], enriched = tasks.map(smartService.enrich), ranked = smartService.rankTasks(tasks);
+    const completed = enriched.filter((t) => t.completionStatus === "completed").length, pending = tasks.length - completed;
+    const overdue = enriched.filter((t) => t.isOverdue).length;
+    const dueSoon = enriched.filter((t) => !t.isOverdue && t.completionStatus !== "completed" && new Date(t.deadline) - new Date() <= 3 * 86400000).length;
+    const inProgress = enriched.filter((t) => t.currentProgress > 0 && t.currentProgress < 100).length, notStarted = enriched.filter((t) => Number(t.currentProgress) === 0).length;
+    const progress = taskService.getProgress(tasks);
+    const attention = ranked.filter((t) => t.isOverdue || t.hasWorkloadWarning || ["high", "very-high"].includes(t.importance)).slice(0, 3);
+    const upcoming = enriched.filter((t) => t.completionStatus !== "completed" && !t.isOverdue).sort((a, b) => new Date(a.deadline) - new Date(b.deadline)).slice(0, 5);
+    const priority = (t) => t.importance === "very-high" ? "Very high" : t.importance[0].toUpperCase() + t.importance.slice(1);
+    const taskLink = (t) => `<a class="task-link" href="course.html?courseId=${encodeURIComponent(t.courseId)}"><span>${esc(t.name)}</span><span class="row-arrow" aria-hidden="true">&rsaquo;</span></a>`;
+
+    $("#stats").innerHTML = [[pending, "Pending tasks", "pending"], [overdue, "Overdue tasks", "overdue"], [dueSoon, "Due soon", "due"], [completed, "Completed tasks", "completed"]].map(([value, label, kind]) => `<article class="stat ${kind}-stat"><span class="stat-icon" aria-hidden="true">${kind === "overdue" ? "!" : kind === "due" ? "&#9719;" : kind === "completed" ? "&#10003;" : "&#8593;"}</span><strong>${value}</strong><span>${label}</span></article>`).join("");
+    $("#attentionArea").innerHTML = `<article class="card overview-card attention-card"><div class="overview-head"><div><span class="section-icon warning-color" aria-hidden="true">!</span><h2>Warning</h2></div><a href="course.html">View all &rarr;</a></div><p class="overview-caption">Tasks ranked by deadlines and workload.</p><div class="attention-list">${attention.length ? attention.map((t) => `<div class="attention-task"><span class="attention-alert" aria-hidden="true">!</span><div class="attention-copy">${taskLink(t)}<span class="status ${t.isOverdue ? "overdue" : t.importance}">${priority(t)}</span><small>${dueLabel(t.deadline)} &nbsp;&middot;&nbsp; ~${t.remainingWorkload.toFixed(1)}h remaining &nbsp;&middot;&nbsp; ${t.currentProgress}% complete</small></div><div class="task-progress"><div class="progress"><span style="width:${t.currentProgress}%"></span></div><span>${t.currentProgress}%</span></div></div>`).join("") : `<div class="mini-empty"><img src="../source/studyflow-mascot-pack/cat-good-job.png" alt=""><strong>You're all caught up.</strong><span>No tasks currently need your attention.</span></div>`}</div></article>`;
+    $("#progressArea").innerHTML = `<article class="card overview-card progress-card"><div class="overview-head"><div><span class="section-icon" aria-hidden="true">&#9638;</span><h2>Your Progress</h2></div></div><div class="progress-summary"><div class="progress-ring" style="--progress:${progress}" role="img" aria-label="${progress}% overall progress"><span>${progress}%</span></div><div><p>Overall completion</p><div class="progress-value">${progress}%</div><div class="progress progress-large" aria-hidden="true"><span style="width:${progress}%"></span></div><div class="progress-counts"><strong>${completed} completed</strong><span>${pending} remaining</span></div></div></div><div class="progress-message"><img src="../source/studyflow-decoration-pack/plant-kawaii.png" alt="" aria-hidden="true"><span><strong>${progress === 100 ? "Beautiful work!" : "Great progress!"}</strong> You've completed ${progress}% of your task progress.</span></div><strong class="breakdown-title">Task Breakdown</strong><div class="task-breakdown"><span><b>${completed}</b>Completed</span><span><b>${inProgress}</b>In progress</span><span><b>${notStarted}</b>Not started</span><span><b>${tasks.length}</b>Total</span></div></article>`;
+    $("#upcomingTasks").innerHTML = upcoming.length ? `<div class="upcoming-head"><span>Date</span><span>Task</span><span>Priority</span><span>Remaining</span><span>Progress</span><span></span></div>${upcoming.map((t) => `<div class="upcoming-row"><time datetime="${esc(t.deadline)}">${fmtDate(t.deadline)}</time>${taskLink(t)}<span><span class="status ${t.importance}">${priority(t)}</span></span><span>~${t.remainingWorkload.toFixed(1)}h</span><div class="task-progress"><div class="progress"><span style="width:${t.currentProgress}%"></span></div><span>${t.currentProgress}%</span></div></div>`).join("")}` : `<div class="mini-empty compact"><strong>No upcoming tasks.</strong><span>You're clear for now.</span></div>`;
   };
   render();
-  addEventListener("storage", (event) => (event.key === "studyflow_tasks" || event.key === "studyflow_courses") && render());
+  addEventListener("storage", (event) => event.key === "studyflow_tasks" && render());
   addEventListener("pageshow", render);
 }
+
 function initCourseManagement(u) {
   const main = document.querySelector(".course-main");
   let query = "", statusFilter = "all", sort = "name", view = localStorage.getItem("studyflow_course_view") === "list" ? "list" : "grid";
@@ -578,5 +571,5 @@ wireAuthTabs();
 wireAuth();
 initPageTransitions();
 const page = document.body.dataset.page;
-if (page === "dashboard") initDashboard();
+if (page === "dashboard") initTaskDashboard();
 if (page === "course") initCourse();

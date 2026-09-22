@@ -51,21 +51,20 @@
           <img class="hero-mascot" src="../source/studyflow-mascot-pack/cat-laptop.png" alt="" />
           <img class="hero-note" src="../source/studyflow-note/you-got-this.png" alt="" />
         </div>
-        <button id="nextTaskBtn" class="btn btn-primary"><span aria-hidden="true">&#10022;</span> What should I do next? <span aria-hidden="true">&rarr;</span></button>
+        <a class="btn btn-primary" href="course.html">All Tasks <span aria-hidden="true">&rarr;</span></a>
       </section>
       <section class="pulse-bar" aria-labelledby="pulseTitle">
         <div class="pulse-heading"><strong id="pulseTitle">Today's pulse</strong><span>A quick snapshot of your tasks</span></div>
         <div class="stats-grid" id="stats"></div>
         <p class="pulse-message"><span aria-hidden="true">&#127793;</span> A focused mind makes a productive day.</p>
       </section>
-      <section id="recommendedTask" tabindex="-1" aria-label="Recommended next task"></section>
       <section class="overview-grid">
         <div id="attentionArea"></div>
         <div id="progressArea"></div>
       </section>
-      <section class="courses-overview">
-        <div class="section-head"><div><span class="section-icon course-book" aria-hidden="true">&#128214;</span><h2>My Courses</h2></div><a class="course-link" href="course.html">View all courses &rarr;</a></div>
-        <div id="courseOverview" class="course-grid"></div>
+      <section class="card upcoming-card" aria-labelledby="upcomingTitle">
+        <div class="section-head"><div><span class="section-icon" aria-hidden="true">&#128197;</span><h2 id="upcomingTitle">Upcoming Tasks</h2></div><a class="course-link" href="course.html">View all &rarr;</a></div>
+        <div id="upcomingTasks"></div>
       </section>
     </main>
     <div id="modalRoot"></div>
