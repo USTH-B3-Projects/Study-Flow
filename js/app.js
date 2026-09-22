@@ -254,6 +254,46 @@ function wireAuthTabs() {
     }),
   );
 }
+
+let notiEventsBound = false;
+
+function initNotifications(user) {
+  const notiBadge = document.getElementById('notiBadge');
+  const notiList = document.getElementById('notiList');
+  const bellBtn = document.getElementById('notiBellBtn');
+  const dropdown = document.getElementById('notiDropdown');
+
+  if (!notiBadge || !notiList || !bellBtn || !dropdown) return;
+
+  const userTasks = taskService.getTasksByUserId(user.userId) || [];
+  const notifications = smartService.getUserNotifications(userTasks);
+
+  if (notifications.length > 0) {
+    notiBadge.textContent = notifications.length;
+    notiBadge.style.display = 'block';
+
+    notiList.innerHTML = notifications.map(noti => `
+      <li class="noti-item">
+        <span class="noti-title">${esc(noti.title)}</span>
+        <span class="noti-desc">${esc(noti.message)}</span>
+      </li>
+    `).join('');
+  } else {
+    notiBadge.style.display = 'none';
+    notiList.innerHTML = `<li class="noti-empty">Great job! You have no workload warnings.</li>`;
+  }
+  if (!notiEventsBound){
+  bellBtn.onclick = (e) => {
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  };
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && e.target !== bellBtn) {
+      dropdown.style.display = 'none';}
+  });
+  notiEventsBound=true;
+}
+}
 function initShell() {
   const u = authService.getCurrentUser();
   if (!u) {
@@ -289,6 +329,7 @@ function initShell() {
     authService.logout();
     location.href = "index.html";
   });
+  initNotifications(u);
   return u;
 }
 
@@ -336,6 +377,7 @@ function initDashboard() {
       taskService.toggleCompleted(button.dataset.dashboardComplete);
       render();
     });
+    initNotifications(u);
   };
   $("#nextTaskBtn").onclick = () => {
     $("#recommendedTask").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -561,6 +603,7 @@ function initCourse() {
         () => {},
       );
     };
+    initNotifications(u);
   };
   render();
 }

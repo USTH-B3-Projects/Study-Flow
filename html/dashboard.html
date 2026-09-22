@@ -37,6 +37,16 @@
               </div>
             </div>
           </label>
+          <div class="notification-wrapper" style="position: relative; margin-right: 15px;">
+            <button id="notiBellBtn" class="icon-btn" aria-label="Notifications" style="font-size: 20px; border: none; background: transparent; cursor: pointer;">
+              🔔
+              <span id="notiBadge" class="noti-badge" style="display: none;">0</span>
+            </button>
+            <div id="notiDropdown" class="noti-dropdown" style="display: none;">
+              <div class="noti-header">Notifications</div>
+              <ul id="notiList" class="noti-list"></ul>
+            </div>
+          </div>
           <span id="userAvatar" class="user-avatar" aria-hidden="true"></span>
           <span id="userName" class="user-name"></span>
           <button id="logoutBtn" class="btn btn-outline">Log out</button>

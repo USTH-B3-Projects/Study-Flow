@@ -102,7 +102,7 @@ export function enrich(task) {
   const hasWorkloadWarning =
     completionStatus !== "completed" &&
     !isOverdue &&
-    task.estimatedDuration != null &&
+    //task.estimatedDuration != null &&
     ((urgencyScore >= 80 && workloadScore >= 60) ||
       (urgencyScore >= 60 && workloadScore >= 80));
 
@@ -192,4 +192,57 @@ export function getWorkloadWarning(tasks) {
 
 export function recommended(tasks, limit = 3) {
   return rankTasks(tasks).slice(0, limit);
+}
+
+
+export function getWarningNotification(task) {
+    if (!task.hasWorkloadWarning) return null;
+
+    const now = new Date();
+    const deadlineDate = new Date(task.deadline);
+    
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDeadlineDay = new Date(
+        deadlineDate.getFullYear(),
+        deadlineDate.getMonth(),
+        deadlineDate.getDate()
+    );
+    const daysRemaining = Math.round((startOfDeadlineDay - startOfToday) / (24 * 60 * 60 * 1000));
+    
+    let deadlineText = `in ${daysRemaining} days`;
+    if (daysRemaining === 1) deadlineText = "tomorrow";
+    else if (daysRemaining === 0) deadlineText = "today";
+
+    const remainingHours = task.remainingWorkload.toFixed(1);
+
+    return {
+        taskId: task.taskId,
+        taskName: task.name,
+        deadline: task.deadline,
+        remainingWorkload: remainingHours,
+        title: "⚠️ Workload Warning",
+        message: `${task.name} still requires approximately ${remainingHours} hours of work and is due ${deadlineText}.`
+    };
+}
+
+
+export function getUserNotifications(tasks) {
+    const enrichedTasks = tasks.map(enrich);
+    const notifications = [];
+
+    enrichedTasks.forEach(task => {
+        
+        if (task.isOverdue) {
+            notifications.push({
+                taskId: task.taskId,
+                title: "🚨 Overdue Task",
+                message: `"${task.name}" is past its deadline. Please complete it ASAP!`
+            });
+        }
+        else if (task.hasWorkloadWarning) {
+            notifications.push(getWarningNotification(task));
+        }
+    });
+
+    return notifications;
 }
