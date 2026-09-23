@@ -491,9 +491,13 @@ body[data-page="dashboard"]::before {
 .mini-empty { min-height: 185px; display: grid; place-content: center; justify-items: center; gap: 2px; color: var(--text-secondary); text-align: center; }
 .mini-empty img { width: 90px; height: 68px; object-fit: contain; }
 .mini-empty strong { color: var(--text-primary); }
-.progress-card { display: flex; flex-direction: column; }
-.progress-summary { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 18px; margin-top: 14px; }
-.progress-summary > div:last-child { min-width: 0; }
+.progress-card { display: flex; flex-direction: column; gap: 12px; }
+.summary-head, .summary-title { display: flex; align-items: center; gap: 10px; }
+.summary-head { justify-content: space-between; }
+.summary-title h2 { margin: 0; font-size: 20px; }
+.summary-title p { margin: 2px 0 0; color: var(--text-secondary); font-size: 11px; }
+.summary-head time { flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--border); border-radius: 9px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 10px; font-weight: 700; }
+.today-summary { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: 14px; }
 .progress-ring {
   width: 110px;
   height: 110px;
@@ -503,15 +507,21 @@ body[data-page="dashboard"]::before {
   background: conic-gradient(var(--primary) calc(var(--progress) * 1%), var(--bg-secondary) 0);
 }
 .progress-ring::before { content: ""; grid-area: 1 / 1; width: 82px; height: 82px; border-radius: 50%; background: var(--surface); }
-.progress-ring span { z-index: 1; grid-area: 1 / 1; font-size: 24px; font-weight: 800; }
-.progress-summary p { margin: 0; color: var(--text-secondary); font-size: 11px; }
-.progress-value { margin: 1px 0 6px; font-size: 25px; font-weight: 800; }
-.progress-large { height: 8px; }
-.progress-counts { display: flex; gap: 12px; margin-top: 7px; color: var(--text-secondary); font-size: 11px; }
-.progress-counts strong { color: var(--text-secondary); }
+.progress-ring > span { z-index: 1; grid-area: 1 / 1; display: grid; text-align: center; }
+.progress-ring strong { font-size: 22px; line-height: 1; }
+.progress-ring small { margin-top: 4px; color: var(--text-secondary); font-size: 9px; font-weight: 600; }
+.summary-statuses { min-width: 0; display: grid; gap: 7px; }
+.summary-status { display: grid; grid-template-columns: 9px 22px minmax(0, 1fr); align-items: center; gap: 7px; padding: 7px 9px; border-radius: 10px; font-size: 11px; }
+.summary-status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.summary-status strong { color: var(--text-primary); font-size: 14px; }
+.summary-status span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.summary-status.attention { color: var(--danger); background: var(--red-soft); }
+.summary-status.active { color: var(--primary); background: var(--blue-soft); }
+.summary-status.done { color: var(--success); background: var(--green-soft); }
 .progress-message { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 8px 13px; border-radius: 13px; background: var(--blue-soft); font-size: 13px; }
 .progress-message img { width: 34px; height: 42px; object-fit: contain; }
 .progress-message strong { display: block; }
+.progress-message small { display: block; margin-top: 1px; color: var(--text-secondary); font-size: 10px; }
 .courses-overview { margin-top: 12px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 8px; padding: 0 4px; }
 .section-head > div { display: flex; align-items: center; gap: 10px; }
@@ -578,7 +588,7 @@ body[data-page="dashboard"]::before {
   .empty-state { grid-template-columns: 1fr 90px; }
   .empty-mascot { grid-column: 2; width: 90px; }
   .overview-card { min-height: 0; padding: 18px; }
-  .progress-summary { grid-template-columns: 94px minmax(0, 1fr); }
+  .today-summary { grid-template-columns: 94px minmax(0, 1fr); }
   .progress-ring { width: 86px; height: 86px; }
   .progress-ring::before { width: 66px; height: 66px; }
   .progress-ring span { font-size: 19px; }
@@ -603,6 +613,8 @@ body[data-page="dashboard"]::before {
   .attention-task .status { grid-column: 2; width: max-content; }
   .attention-task .row-arrow { grid-column: 3; grid-row: 1 / 3; }
   .overview-caption { display: none; }
+  .today-summary { grid-template-columns: 1fr; justify-items: center; }
+  .summary-statuses { width: 100%; }
 }
 
 body[data-page="dashboard"] .overview-grid { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); }
@@ -613,7 +625,6 @@ body[data-page="dashboard"] .attention-copy { grid-template-columns: minmax(0, m
 body[data-page="dashboard"] .attention-copy .task-link { width: max-content; max-width: 100%; }
 body[data-page="dashboard"] .attention-copy .status { width: max-content; }
 body[data-page="dashboard"] .progress-card { gap: 10px; }
-body[data-page="dashboard"] .progress-summary { margin-top: 4px; }
 body[data-page="dashboard"] .progress-message { margin-top: 0; }
 body[data-page="dashboard"] .breakdown-title { margin: 0 0 6px; }
 body[data-page="dashboard"] .status:is(.high, .very-high) { color: var(--danger); background: var(--red-soft); }
