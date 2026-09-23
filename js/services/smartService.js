@@ -5,7 +5,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const DEFAULT_EFFECTIVE_DURATION = 3;
 
-function calculateUrgencyScore(deadline) {
+export function calculateUrgencyScore(deadline) {
   const now = new Date();
   const deadlineDate = new Date(deadline);
 
@@ -38,7 +38,7 @@ function calculateUrgencyScore(deadline) {
   return 20;
 }
 
-function calculateImportanceScore(importance) {
+export function calculateImportanceScore(importance) {
   const scoreMap = {
     "very-low": 20,
     low: 40,
@@ -51,7 +51,7 @@ function calculateImportanceScore(importance) {
   return scoreMap[importance] !== undefined ? scoreMap[importance] : 60;
 }
 
-function calculateRemainingWorkload(estimatedDuration, currentProgress) {
+export function calculateRemainingWorkload(estimatedDuration, currentProgress) {
   const effectiveDuration =
     estimatedDuration === null || estimatedDuration === undefined
       ? DEFAULT_EFFECTIVE_DURATION
@@ -60,7 +60,7 @@ function calculateRemainingWorkload(estimatedDuration, currentProgress) {
   return effectiveDuration * (1 - currentProgress / 100);
 }
 
-function calculateWorkloadScore(remainingWorkload) {
+export function calculateWorkloadScore(remainingWorkload) {
   if (remainingWorkload <= 1) {
     return 20;
   }
