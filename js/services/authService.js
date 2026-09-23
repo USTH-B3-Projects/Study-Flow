@@ -1,105 +1,82 @@
-const USERS_KEY = "users";
-const CURRENT_USER_KEY = "current_user";
-const LEGACY_USER_ID = "studentId";
+import * as apiClient from "./storageService.js";
 
-function readJson(key, fallback) {
+const CURRENT_USER_KEY = "studyflow_current_user";
+
+/**
+ * Register a new student account.
+ * @param {string} studentName - Student's display name
+ * @param {string} username - Unique login identifier
+ * @param {string} password - Account password
+ * @param {string} confirmPassword - Password confirmation
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function register(studentName, username, password, confirmPassword) {
   try {
-    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+    await apiClient.post("/auth/register", {
+      studentName,
+      username,
+      password,
+      confirmPassword,
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Login with username and password.
+ * Stores the current user in localStorage (session only).
+ * @param {string} username
+ * @param {string} password
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function login(username, password) {
+  try {
+    const result = await apiClient.post("/auth/login", { username, password });
+    // Store minimal user info in localStorage for session management
+    localStorage.setItem(
+      CURRENT_USER_KEY,
+      JSON.stringify({ username, studentName: result.user.name })
+    );
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reset password for an account.
+ * @param {string} username
+ * @param {string} newPassword
+ * @param {string} confirmPassword
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function resetPassword(username, newPassword, confirmPassword) {
+  try {
+    await apiClient.post("/auth/reset", { username, newPassword, confirmPassword });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get the currently logged-in student.
+ * @returns {Object|null} Student object or null if not logged in
+ */
+export function getCurrentUser() {
+  try {
+    const stored = localStorage.getItem(CURRENT_USER_KEY);
+    return stored ? JSON.parse(stored) : null;
   } catch {
-    return fallback;
+    return null;
   }
 }
 
-function getUsers() {
-  const users = readJson(USERS_KEY, []);
-  if (!Array.isArray(users)) return [];
-  const migrated = users.map(migrateUser);
-  if (migrated.some((user, index) => user !== users[index])) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(migrated));
-  }
-  return migrated;
-}
-
-function migrateUser(user) {
-  if (!user || typeof user !== "object" || !(LEGACY_USER_ID in user)) return user;
-  const { [LEGACY_USER_ID]: legacyUserId, ...migrated } = user;
-  return { ...migrated, userId: migrated.userId ?? legacyUserId };
-}
-
-export function register(userId, password, name, email) {
-  name = String(name ?? "").trim();
-  userId = String(userId ?? "").trim();
-  password = String(password ?? "");
-  email = String(email ?? "").trim().toLowerCase();
-
-  if (!userId || !name || !password) {
-    return { success: false, error: "All fields are required" };
-  }
-  if (password.length < 8) {
-    return { success: false, error: "Password must be at least 8 characters" };
-  }
-
-  const users = getUsers();
-  if (users.some((user) => user.userId.toLowerCase() === userId.toLowerCase())) {
-    return { success: false, error: "User ID already registered" };
-  }
-  if (email && users.some((user) => String(user.email || "").toLowerCase() === email)) {
-    return { success: false, error: "Email already registered" };
-  }
-  const user = {
-    userId,
-    name,
-    password,
-    ...(email && { email }),
-    createdAt: new Date().toISOString(),
-  };
-  localStorage.setItem(USERS_KEY, JSON.stringify([...users, user]));
-  return { success: true, user };
-}
-
-export function login(identifier, password) {
-  identifier = String(identifier ?? "").trim().toLowerCase();
-  password = String(password ?? "");
-  const user = getUsers().find(
-    (candidate) =>
-      (candidate.userId.toLowerCase() === identifier ||
-        String(candidate.email || "").toLowerCase() === identifier) &&
-      candidate.password === password,
-  );
-
-  if (!user) return { success: false, error: "Invalid credentials" };
-
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-  return { success: true, user };
-}
-
-export function resetPassword(identifier, password) {
-  identifier = String(identifier ?? "").trim().toLowerCase();
-  password = String(password ?? "");
-  if (password.length < 8) {
-    return { success: false, error: "Password must be at least 8 characters" };
-  }
-
-  const users = getUsers();
-  const index = users.findIndex((user) =>
-    user.userId.toLowerCase() === identifier || String(user.email || "").toLowerCase() === identifier,
-  );
-  if (index < 0) return { success: false, error: "Username or email not found" };
-
-  users[index] = { ...users[index], password };
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  return { success: true };
-}
-
+/**
+ * Logout the current student.
+ */
 export function logout() {
   localStorage.removeItem(CURRENT_USER_KEY);
-  return true;
-}
-
-export function getCurrentUser() {
-  const storedUser = readJson(CURRENT_USER_KEY, null);
-  if (!storedUser || typeof storedUser !== "object" || Array.isArray(storedUser)) return null;
-  const user = migrateUser(storedUser);
-  if (user !== storedUser) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-  return user;
 }

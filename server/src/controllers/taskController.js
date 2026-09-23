@@ -94,7 +94,7 @@ exports.create = (req, res) => {
   if (importance !== undefined && !isValidImportance(importance)) {
     return res.status(400).json({ error: 'Importance is invalid' });
   }
-  if (estimatedDuration !== undefined && estimatedDuration <= 0) {
+  if (estimatedDuration != null && estimatedDuration <= 0) {
     return res.status(400).json({ error: 'estimatedDuration must be larger than 0' });
   }
   if (currentProgress !== undefined && !isValidProgress(currentProgress)) {
@@ -114,7 +114,7 @@ exports.create = (req, res) => {
       INSERT INTO tasks (id, courseId, taskName, description, deadline, importance, estimatedDuration, currentProgress, createdAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      crypto.randomUUID(),
+      taskId,
       courseId,
       taskName.trim(),
       description ? description.trim() : '',
@@ -144,23 +144,27 @@ exports.create = (req, res) => {
 };
 
 exports.getAll = (req, res) => {
+  const { username, courseId } = req.query;
+
   try {
     const tasks = db.prepare(`
       SELECT 
-        id as taskId,
-        courseId,
-        taskName as name,
-        description,
-        deadline,
-        importance,
-        estimatedDuration,
-        currentProgress,
-        createdAt
-      FROM tasks
-      ORDER BY createdAt DESC
-    `).all();
+        t.id as taskId,
+        t.courseId,
+        t.taskName as name,
+        t.description,
+        t.deadline,
+        t.importance,
+        t.estimatedDuration,
+        t.currentProgress,
+        t.createdAt
+      FROM tasks t
+      JOIN courses c ON c.courseId = t.courseId
+      WHERE c.username = ? AND (? IS NULL OR t.courseId = ?)
+      ORDER BY t.createdAt DESC
+    `).all(username, courseId || null, courseId || null);
 
-    res.json({ tasks });
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -189,7 +193,7 @@ exports.getById = (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    res.json({ task });
+    res.json(task);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -197,7 +201,7 @@ exports.getById = (req, res) => {
 
 exports.update = (req, res) => {
   const { id } = req.params;
-  const { name, description, deadline, importance, estimatedDuration, currentProgress } = req.body;
+  const { taskName, description, deadline, importance, estimatedDuration, currentProgress } = req.body;
 
   try {
     const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
@@ -205,7 +209,7 @@ exports.update = (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (name !== undefined && name.trim().length === 0) {
+    if (taskName !== undefined && taskName.trim().length === 0) {
       return res.status(400).json({ error: 'Task name is NOT empty' });
     }
     if (deadline !== undefined && !isValidDate(deadline)) {
@@ -226,7 +230,7 @@ exports.update = (req, res) => {
       SET taskName = ?, description = ?, deadline = ?, importance = ?, estimatedDuration = ?, currentProgress = ?
       WHERE id = ?
     `).run(
-      name !== undefined ? name.trim() : task.taskName,
+      taskName !== undefined ? taskName.trim() : task.taskName,
       description !== undefined ? description.trim() : task.description,
       deadline !== undefined ? deadline : task.deadline,
       importance !== undefined ? importance : task.importance,

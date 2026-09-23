@@ -1,243 +1,182 @@
-import { getCourseById } from "./courseService.js";
+import * as apiClient from "./storageService.js";
+import { getCurrentUser } from "./authService.js";
 
-const TASKS_KEY = "studyflow_tasks";
-const COURSES_KEY = "studyflow_courses";
-const LEGACY_USER_ID = "studentId";
-
-const VALID_PROGRESS_VALUES = [0, 25, 50, 75, 100];
-const VALID_IMPORTANCE_VALUES = ["very-low", "low", "medium", "high", "very-high"];
 const progressBeforeCompletion = new Map();
 
-function generateTaskId() {
-  return crypto.randomUUID();
-}
+/**
+ * Create a new task.
+ * @param {Object} taskData - { courseId, taskName, description, deadline, importance, estimatedDuration, currentProgress }
+ * @returns {Promise<Object>} Created task
+ */
+export async function createTask(taskData) {
+  const user = getCurrentUser();
+  if (!user) throw new Error("Not logged in");
 
-function getData(key) {
-  let data = JSON.parse(localStorage.getItem(key) ?? "[]");
-  if (!Array.isArray(data)) throw new Error(`Invalid stored data for ${key}`);
-  if (key === COURSES_KEY) {
-    const migrated = data.map((course) => {
-      if (!course || typeof course !== "object" || !(LEGACY_USER_ID in course)) return course;
-      const { [LEGACY_USER_ID]: legacyUserId, ...rest } = course;
-      return { ...rest, userId: rest.userId ?? legacyUserId };
-    });
-    if (migrated.some((course, index) => course !== data[index])) {
-      saveData(key, migrated);
-      data = migrated;
-    }
-  }
-  return data;
-}
-
-function saveData(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
-function getAllTasks() {
-  return getData(TASKS_KEY);
-}
-
-function parseProgress(value, defaultValue = 0) {
-  if (value === undefined) return defaultValue;
-  const progress = Number(value);
-  if (!VALID_PROGRESS_VALUES.includes(progress)) {
-    throw new Error("currentProgress must be: 0, 25, 50, 75, 100.");
-  }
-  return progress;
-}
-
-function parseDuration(value) {
-  if (value === undefined || value === null || value === "") return null;
-  const duration = Number(value);
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw new Error("estimatedDuration must be larger than 0.");
-  }
-  return duration;
-}
-
-function parseDeadline(value) {
-  const deadline = new Date(value);
-  if (!value || Number.isNaN(deadline.getTime())) {
-    throw new Error("Deadline is invalid.");
-  }
-  return deadline.toISOString();
-}
-
-function parseImportance(value = "medium") {
-  if (!VALID_IMPORTANCE_VALUES.includes(value)) {
-    throw new Error("Importance is invalid.");
-  }
-  return value;
-}
-
-export function createTask(taskData) {
-  const name = (taskData.name || "").trim();
-  if (!name) {
-    throw new Error("Task name is NOT empty.");
-  }
-
-  const course = getCourseById(taskData.courseId);
-  if (!course) {
-    throw new Error("courseId does NOT exist.");
-  }
-
-  const newTask = {
-    taskId: generateTaskId(),
+  const task = await apiClient.post("/tasks", {
+    username: user.username,
     courseId: taskData.courseId,
-    name: name,
-    description: String(taskData.description || "").trim(),
-    deadline: parseDeadline(taskData.deadline),
-    importance: parseImportance(taskData.importance),
-    estimatedDuration: parseDuration(taskData.estimatedDuration),
-    currentProgress: parseProgress(taskData.currentProgress),
-    createdAt: new Date().toISOString(),
-  };
-
-  const tasks = getAllTasks();
-  tasks.push(newTask);
-  saveData(TASKS_KEY, tasks);
-
-  return newTask;
+    taskName: taskData.taskName || taskData.name, // Handle both old and new field names
+    description: taskData.description || "",
+    deadline: taskData.deadline,
+    importance: taskData.importance || "medium",
+    estimatedDuration: taskData.estimatedDuration || null,
+    currentProgress: taskData.currentProgress || 0,
+  });
+  return task;
 }
 
-export function getTasksByUserId(userId) {
-  const courses = getData(COURSES_KEY);
-  const userCourseIds = courses
-    .filter((course) => course.userId === userId)
-    .map((course) => course.courseId);
+/**
+ * Get all tasks for the current user (across all courses).
+ * @returns {Promise<Array>} Array of tasks
+ */
+export async function getTasksByUserId() {
+  const user = getCurrentUser();
+  if (!user) throw new Error("Not logged in");
 
-  const tasks = getAllTasks();
-  return tasks.filter((task) => userCourseIds.includes(task.courseId));
+  const tasks = await apiClient.get(
+    `/tasks?username=${encodeURIComponent(user.username)}`
+  );
+  return Array.isArray(tasks) ? tasks : [];
 }
 
-export function getTasksByCourseId(courseId) {
-  const tasks = getAllTasks();
-  return tasks.filter((task) => task.courseId === courseId);
+/**
+ * Get all tasks for a specific course.
+ * @param {string} courseId
+ * @returns {Promise<Array>} Array of tasks
+ */
+export async function getTasksByCourseId(courseId) {
+  const user = getCurrentUser();
+  if (!user) throw new Error("Not logged in");
+
+  const tasks = await apiClient.get(
+    `/tasks?courseId=${encodeURIComponent(courseId)}&username=${encodeURIComponent(user.username)}`
+  );
+  return Array.isArray(tasks) ? tasks : [];
 }
 
+/**
+ * Calculate overall progress percentage.
+ * @param {Array} tasks
+ * @returns {number} Progress percentage 0-100
+ */
 export function getProgress(tasks) {
   return tasks.length
-    ? Math.round(tasks.reduce((sum, task) => sum + Number(task.currentProgress || 0), 0) / tasks.length)
+    ? Math.round(
+        tasks.reduce((sum, task) => sum + Number(task.currentProgress || 0), 0) /
+          tasks.length
+      )
     : 0;
 }
 
-export function getTaskById(taskId) {
-  const tasks = getAllTasks();
-  const task = tasks.find((t) => t.taskId === taskId);
-  return task || null;
-}
-
-export function updateTask(taskId, data) {
-  const tasks = getAllTasks();
-  const index = tasks.findIndex((t) => t.taskId === taskId);
-
-  if (index === -1) {
+/**
+ * Get a task by ID.
+ * @param {string} taskId
+ * @returns {Promise<Object|null>} Task or null if not found
+ */
+export async function getTaskById(taskId) {
+  try {
+    const task = await apiClient.get(`/tasks/${taskId}`);
+    return task || null;
+  } catch {
     return null;
   }
+}
 
-  const allowedFields = [
-    "name",
-    "description",
-    "deadline",
-    "importance",
-    "estimatedDuration",
-    "currentProgress",
-  ];
-
-  const currentTask = tasks[index];
-  const updatedTask = { ...currentTask };
-
-  for (const field of allowedFields) {
-    if (data[field] !== undefined) {
-      updatedTask[field] = data[field];
-    }
+/**
+ * Update a task.
+ * @param {string} taskId
+ * @param {Object} data - Fields to update
+ * @returns {Promise<Object>} Updated task
+ */
+export async function updateTask(taskId, data) {
+  // Map old field names to new ones
+  const mappedData = { ...data };
+  if (mappedData.name && !mappedData.taskName) {
+    mappedData.taskName = mappedData.name;
+    delete mappedData.name;
+  }
+  if (mappedData.userId && !mappedData.username) {
+    mappedData.username = mappedData.userId;
+    delete mappedData.userId;
   }
 
-  updatedTask.name = String(updatedTask.name || "").trim();
-  if (!updatedTask.name) throw new Error("Task name is NOT empty.");
-  updatedTask.description = String(updatedTask.description || "").trim();
-  updatedTask.deadline = parseDeadline(updatedTask.deadline);
-  updatedTask.importance = parseImportance(updatedTask.importance);
-  updatedTask.estimatedDuration = parseDuration(updatedTask.estimatedDuration);
-  updatedTask.currentProgress = parseProgress(updatedTask.currentProgress);
-
-  tasks[index] = updatedTask;
-  saveData(TASKS_KEY, tasks);
-
-  return updatedTask;
+  const task = await apiClient.put(`/tasks/${taskId}`, mappedData);
+  return task;
 }
 
-export function updateDisplayOrder(taskIds) {
-  const tasks = getAllTasks();
-  const remaining = tasks
-    .filter((task) => !taskIds.includes(task.taskId))
-    .sort((a, b) => (a.manualOrder ?? Number.MAX_SAFE_INTEGER) - (b.manualOrder ?? Number.MAX_SAFE_INTEGER))
-    .map((task) => task.taskId);
-  const order = new Map([...taskIds, ...remaining].map((id, index) => [id, index]));
-  tasks.forEach((task) => {
-    if (order.has(task.taskId)) task.manualOrder = order.get(task.taskId);
-  });
-  saveData(TASKS_KEY, tasks);
+/**
+ * Delete a task.
+ * @param {string} taskId
+ * @returns {Promise<void>}
+ */
+export async function deleteTask(taskId) {
+  await apiClient.del(`/tasks/${taskId}`);
 }
 
-export function deleteTask(taskId) {
-  const tasks = getAllTasks();
-  const index = tasks.findIndex((t) => t.taskId === taskId);
-
-  if (index === -1) {
-    return false;
-  }
-
-  tasks.splice(index, 1);
-  saveData(TASKS_KEY, tasks);
-
-  return true;
+/**
+ * Update task progress.
+ * @param {string} taskId
+ * @param {number} currentProgress - 0, 25, 50, 75, or 100
+ * @returns {Promise<Object>} Updated task
+ */
+export async function updateTaskProgress(taskId, currentProgress) {
+  const task = await updateTask(taskId, { currentProgress });
+  return task;
 }
 
-export function updateTaskProgress(taskId, currentProgress) {
-  currentProgress = parseProgress(currentProgress);
-
-  const tasks = getAllTasks();
-  const index = tasks.findIndex((t) => t.taskId === taskId);
-
-  if (index === -1) {
-    return null;
-  }
-
-  tasks[index].currentProgress = currentProgress;
-  saveData(TASKS_KEY, tasks);
-
-  return tasks[index];
-}
-
-export function markTaskCompleted(taskId) {
+/**
+ * Mark a task as completed (100% progress).
+ * @param {string} taskId
+ * @returns {Promise<Object>} Updated task
+ */
+export async function markTaskCompleted(taskId) {
   return updateTaskProgress(taskId, 100);
 }
 
-export function toggleTaskCompleted(taskId) {
-  const task = getTaskById(taskId);
-  if (!task) return null;
+/**
+ * Toggle task completion: if at 100%, revert to previous progress; otherwise mark as 100%.
+ * @param {string} taskId
+ * @returns {Promise<Object>} Updated task
+ */
+export async function toggleTaskCompleted(taskId) {
+  const task = await getTaskById(taskId);
+  if (!task) throw new Error("Task not found");
+
   if (task.currentProgress === 100) {
     const progress = progressBeforeCompletion.get(taskId) ?? 0;
     progressBeforeCompletion.delete(taskId);
     return updateTaskProgress(taskId, progress);
   }
+
   progressBeforeCompletion.set(taskId, task.currentProgress);
   return updateTaskProgress(taskId, 100);
 }
 
-export function getOverdueTasks(userId) {
-  const now = new Date();
-  const userTasks = getTasksByUserId(userId);
+/**
+ * Update the display order of tasks.
+ * @param {Array<string>} taskIds - Task IDs in desired order
+ * @returns {Promise<void>}
+ */
+export async function updateDisplayOrder(taskIds) {
+  // This endpoint may not be used in the current API; kept for compatibility
+  // The UI maintains local order via DOM manipulation
+}
 
-  return userTasks.filter((task) => {
+/**
+ * Get overdue tasks for the current user.
+ * @returns {Promise<Array>} Array of overdue tasks
+ */
+export async function getOverdueTasks() {
+  const tasks = await getTasksByUserId();
+  const now = new Date();
+  return tasks.filter((task) => {
     const isNotCompleted = task.currentProgress < 100;
     const isPastDeadline = new Date(task.deadline) < now;
     return isNotCompleted && isPastDeadline;
   });
 }
 
-// Names used by app.js.
+// Aliases used by app.js
 export const create = createTask;
 export const list = getTasksByCourseId;
 export const update = updateTask;

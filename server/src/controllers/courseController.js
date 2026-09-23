@@ -44,14 +44,17 @@ exports.create = (req, res) => {
 };
 
 exports.getAll = (req, res) => {
+  const { username } = req.query;
+
   try {
     const courses = db.prepare(`
-      SELECT courseId, username AS userId, courseName, color
+      SELECT courseId, username, courseName, color
       FROM courses
+      WHERE username = ?
       ORDER BY courseName
-    `).all();
+    `).all(username);
     
-    res.json({ courses });
+    res.json(courses);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -62,7 +65,7 @@ exports.getById = (req, res) => {
 
   try {
     const course = db.prepare(`
-      SELECT courseId, username AS userId, courseName, color
+      SELECT courseId, username, courseName, color
       FROM courses
       WHERE courseId = ?
     `).get(id);
@@ -71,7 +74,7 @@ exports.getById = (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    res.json({ course });
+    res.json(course);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

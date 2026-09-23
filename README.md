@@ -46,6 +46,16 @@ Calculated values: priority score, workload score, overdue status, and workload 
 
 Setup instructions will be added after the technology stack is finalized.
 
+## Demo data
+
+While logged in as the demo student, open the browser console on any StudyFlow page and run:
+
+```js
+import("../js/seedDemoData.js").then(({ seedDemoData }) => seedDemoData()).then(console.log)
+```
+
+This development-only seed is idempotent and adds any missing items from the 24-course, 72-task demo dataset to the current student.
+
 ## Code Structure
 ```text
 studyflow/

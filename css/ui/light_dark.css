@@ -1,6 +1,6 @@
 /* From Uiverse.io by Galahhad */ 
 .theme-switch {
-  --toggle-size: 30px;
+  --toggle-size: 12px;
   /* the size is adjusted using font-size,
      this is not transform scale,
      so you can choose any size */
@@ -23,11 +23,10 @@
   --circle-transition: .3s cubic-bezier(0, -0.02, 0.35, 1.17);
   position: relative;
   display: inline-block;
+  width: var(--container-width);
+  height: var(--container-height);
+  line-height: 0;
   flex: 0 0 auto;
-}
-
-.site-header .theme-switch {
-  --toggle-size: 12px;
 }
 
 .theme-switch, .theme-switch *, .theme-switch *::before, .theme-switch *::after {
@@ -39,6 +38,7 @@
 }
 
 .theme-switch__container {
+  display: block;
   width: var(--container-width);
   height: var(--container-height);
   background-color: var(--container-light-bg);
@@ -218,7 +218,7 @@
 }
 
 @media (max-width: 560px) {
-  .site-header .theme-switch { --toggle-size: 10px; }
+  .theme-switch { --toggle-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

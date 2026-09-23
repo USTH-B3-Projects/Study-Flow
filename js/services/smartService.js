@@ -108,6 +108,9 @@ export function enrich(task) {
 
   return {
     ...task,
+    // Support both old and new field names
+    name: task.taskName || task.name,
+    taskName: task.taskName || task.name,
     effectiveDuration: task.estimatedDuration ?? DEFAULT_EFFECTIVE_DURATION,
     urgencyScore,
     importanceScore,
@@ -158,8 +161,8 @@ export function rankTasks(tasks) {
  * Returns the task recommended as the next step across ALL of the user's courses
  * Returns null if the user has no remaining tasks to complete
  */
-export function getGlobalRecommendations(userId) {
-  const tasks = getTasksByUserId(userId);
+export async function getGlobalRecommendations() {
+  const tasks = await getTasksByUserId();
   const rankedTasks = rankTasks(tasks);
 
   return rankedTasks.length > 0 ? rankedTasks[0] : null;
@@ -169,8 +172,8 @@ export function getGlobalRecommendations(userId) {
  * Returns the task recommended as the next step within the scope of a course
  * Returns null if the course has no remaining tasks to complete
  */
-export function getLocalRecommendations(courseId) {
-  const tasks = getTasksByCourseId(courseId);
+export async function getLocalRecommendations(courseId) {
+  const tasks = await getTasksByCourseId(courseId);
   const rankedTasks = rankTasks(tasks);
 
   return rankedTasks.length > 0 ? rankedTasks[0] : null;
@@ -193,3 +196,6 @@ export function getWorkloadWarning(tasks) {
 export function recommended(tasks, limit = 3) {
   return rankTasks(tasks).slice(0, limit);
 }
+
+// Aliases for backward compatibility
+export const recommended_global = getGlobalRecommendations;

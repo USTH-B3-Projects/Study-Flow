@@ -21,7 +21,7 @@
         <a class="brand" href="dashboard.html"
           ><img class="brand-logo" src="../logo.png" alt="StudyFlow" /></a
         >
-        <nav class="nav nav-links"><a href="dashboard.html">Dashboard</a><a class="active" href="course.html">Courses</a></nav>
+        <nav class="nav nav-links"><a href="dashboard.html">Dashboard</a><a class="active" href="course.html">Courses</a><a href="tasks.html">All Tasks</a></nav>
         <div class="nav-actions user-actions">
           <label class="theme-switch" title="Switch to dark mode">
             <input id="themeToggle" type="checkbox" class="theme-switch__checkbox" aria-label="Switch to dark mode">
@@ -49,24 +49,7 @@
         </div>
       </div>
     </header>
-    <main class="container course-main page-enter">
-      <a class="back-link" href="course.html">&larr; My courses</a>
-      <section id="courseHero"></section>
-      <section id="courseStats" class="course-stats"></section>
-      <section id="warningArea"></section>
-      <section class="task-toolbar">
-        <div id="filters" class="filters"></div>
-        <div class="toolbar-actions">
-          <select id="sortSelect" class="select">
-            <option value="priority">Sort: Priority</option>
-            <option value="deadline">Sort: Deadline</option>
-            <option value="importance">Sort: Importance</option>
-            <option value="createdAt">Sort: Created</option></select
-          ><button id="addTaskBtn" class="btn btn-primary"><span aria-hidden="true">+</span> Add task</button>
-        </div>
-      </section>
-      <section id="taskList" class="task-list"></section>
-    </main>
+    <main class="container course-main page-enter"></main>
     <div id="modalRoot"></div>
     <script type="module" src="../js/app.js"></script>
   </body>
