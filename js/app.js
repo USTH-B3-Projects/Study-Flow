@@ -288,6 +288,27 @@ function wireAuthTabs() {
     }),
   );
 }
+
+async function initNotifications() {
+  const badge = $("#notiBadge"), list = $("#notiList"), bell = $("#notiBellBtn"), dropdown = $("#notiDropdown");
+  if (!badge || !list || !bell || !dropdown) return;
+  const notifications = smartService.getUserNotifications(await taskService.getTasksByUserId());
+  badge.textContent = notifications.length;
+  badge.hidden = !notifications.length;
+  list.innerHTML = notifications.length
+    ? notifications.map((item) => `<li class="noti-item"><span class="noti-title">${esc(item.title)}</span><span class="noti-desc">${esc(item.message)}</span></li>`).join("")
+    : '<li class="noti-empty">Great job! You have no workload warnings.</li>';
+  if (bell.dataset.bound) return;
+  bell.dataset.bound = "true";
+  bell.onclick = (event) => {
+    event.stopPropagation();
+    dropdown.hidden = !dropdown.hidden;
+  };
+  document.addEventListener("click", (event) => {
+    if (!dropdown.contains(event.target) && event.target !== bell) dropdown.hidden = true;
+  });
+}
+
 function initShell() {
   const u = authService.getCurrentUser();
   if (!u) {
@@ -323,6 +344,7 @@ function initShell() {
     authService.logout();
     location.href = "index.html";
   });
+  initNotifications().catch((error) => toast(error.message));
   return u;
 }
 

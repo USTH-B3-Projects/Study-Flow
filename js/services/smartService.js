@@ -199,3 +199,14 @@ export function recommended(tasks, limit = 3) {
 
 // Aliases for backward compatibility
 export const recommended_global = getGlobalRecommendations;
+
+export function getUserNotifications(tasks) {
+  return tasks.map(enrich).flatMap((task) => {
+    const name = task.taskName || task.name;
+    if (task.isOverdue) return [{ title: "🚨 Overdue Task", message: `"${name}" is past its deadline. Please complete it ASAP!` }];
+    if (!task.hasWorkloadWarning) return [];
+    const days = Math.round((new Date(task.deadline).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+    const due = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+    return [{ title: "⚠️ Workload Warning", message: `${name} still requires approximately ${task.remainingWorkload.toFixed(1)} hours of work and is due ${due}.` }];
+  });
+}
