@@ -82,6 +82,11 @@ function modal(title, body, onSubmit) {
   });
   root.querySelector("form")?.addEventListener("submit", (e) => {
     e.preventDefault();
+    const courseSearch = e.target.querySelector("[data-course-search]");
+    if (courseSearch && !e.target.elements.courseId.value) {
+      courseSearch.setCustomValidity("Select or create a course");
+      return courseSearch.reportValidity();
+    }
     onSubmit(new FormData(e.target), close);
   });
   root.querySelector(".modal-backdrop").addEventListener("click", (e) => {
@@ -98,8 +103,82 @@ function taskForm(task = {}) {
   return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="section-heading"><span class="section-icon" aria-hidden="true">▱</span><div><strong>Basic Information</strong><small>Give your task a clear name and add any useful notes.</small></div></div><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="taskName" required value="${esc(taskNameField)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="3" maxlength="500" placeholder="Add a note...">${esc(task.description || "")}</textarea></div></section><section class="planning"><div class="planning-head"><div class="section-heading"><span class="section-icon" aria-hidden="true">□</span><div><strong>Planning &amp; Prioritization</strong><small>Set a deadline, estimate the effort, and indicate how important this task is.</small></div></div><aside class="studyflow-hint"><img src="../source/studyflow-note/idea.png" alt="" aria-hidden="true"><span>These details help StudyFlow calculate task priority and recommend what you should work on next.</span></aside></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? localDateTimeValue(task.deadline) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (3h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; If not specified, we use a default of 3 hours.</small></div></div><div class="form-field range-field importance-range"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"><span class="progress-slider-sparkles"></span></span><span class="progress-slider-thumb"></span></span><input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very low|Low|Medium|High|Very high"></div><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field progress-range"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"><span class="progress-slider-sparkles"></span></span><span class="progress-slider-thumb"></span></span><input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></div></section></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
 }
 function taskFormWithCourse(task, courses) {
-  const field = `<div class="form-field"><label>Course <b>*</b></label><select class="select" name="courseId" required><option value="">Select a course</option>${courses.map((course) => `<option value="${course.courseId}" ${task.courseId === course.courseId ? "selected" : ""}>${esc(course.courseName)}</option>`).join("")}</select></div>`;
+  const selected = courses.find((course) => course.courseId === task.courseId);
+  const field = `<div class="form-field"><label for="taskCourseSearch">Course <b>*</b></label><div id="taskCourseAutocomplete" class="course-autocomplete task-course-autocomplete"><input id="taskCourseSearch" class="select" type="search" value="${esc(selected?.courseName || "")}" placeholder="Select a course" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="taskCourseOptions" autocomplete="off" required data-course-search><input type="hidden" name="courseId" value="${esc(selected?.courseId || "")}"><div id="taskCourseOptions" class="course-options" role="listbox"></div></div></div>`;
   return taskForm(task).replace('<section class="task-details">', `${field}<section class="task-details">`);
+}
+function wireTaskCourseSelector(initialCourses) {
+  const autocomplete = $("#taskCourseAutocomplete"), input = $("#taskCourseSearch"), options = $("#taskCourseOptions");
+  if (!autocomplete) return;
+  const courseId = input.form.elements.courseId;
+  let courses = initialCourses;
+  const normalized = (value) => value.trim().toLowerCase();
+  const close = () => {
+    autocomplete.classList.remove("open");
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  };
+  const select = (course) => {
+    courseId.value = course.courseId;
+    input.value = course.courseName;
+    input.setCustomValidity("");
+    close();
+  };
+  const show = (showAll = false) => {
+    const search = showAll ? "" : normalized(input.value);
+    const matches = courses.filter((course) => normalized(course.courseName).includes(search));
+    options.innerHTML = matches.length ? matches.map((course) => {
+      const start = normalized(course.courseName).indexOf(search), end = start + search.length;
+      const name = search ? `${esc(course.courseName.slice(0, start))}<mark>${esc(course.courseName.slice(start, end))}</mark>${esc(course.courseName.slice(end))}` : esc(course.courseName);
+      return `<button id="task-course-option-${course.courseId}" class="course-option" type="button" role="option" aria-selected="false" data-course-id="${course.courseId}">${name}</button>`;
+    }).join("") : input.value.trim() ? `<button id="task-course-create" class="course-option course-option-create" type="button" role="option" aria-selected="false" data-create-course>Create &quot;${esc(input.value.trim())}&quot;</button>` : '<p class="course-options-empty">No courses yet</p>';
+    autocomplete.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+  };
+  const create = async () => {
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+      courses = await courseService.getCoursesByUserId();
+      const existing = courses.find((course) => normalized(course.courseName) === normalized(name));
+      if (existing) return select(existing);
+      const course = await courseService.createCourse({ courseName: name });
+      courses.push(course);
+      select(course);
+      toast("Course added");
+    } catch (error) { toast(error.message); }
+  };
+  const choose = (option) => option.dataset.courseId ? select(courses.find((course) => course.courseId === option.dataset.courseId)) : create();
+  input.onfocus = () => show(Boolean(courseId.value));
+  input.onclick = () => show(Boolean(courseId.value));
+  input.oninput = () => {
+    courseId.value = "";
+    input.setCustomValidity("");
+    const exact = courses.find((course) => normalized(course.courseName) === normalized(input.value));
+    exact ? select(exact) : show();
+  };
+  input.onblur = () => setTimeout(() => {
+    close();
+    const selected = courses.find((course) => course.courseId === courseId.value);
+    if (selected) input.value = selected.courseName;
+  });
+  options.onmousedown = (event) => { if (event.target.closest(".course-option")) event.preventDefault(); };
+  options.onclick = (event) => { const option = event.target.closest(".course-option"); if (option) choose(option); };
+  input.onkeydown = (event) => {
+    const items = [...options.querySelectorAll(".course-option")], active = options.querySelector(".active");
+    if (event.key === "Escape") return close();
+    if (event.key === "Enter" && active) { event.preventDefault(); return choose(active); }
+    if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+    event.preventDefault();
+    if (!autocomplete.classList.contains("open")) show();
+    const index = items.indexOf(active), next = items[index < 0 ? (event.key === "ArrowDown" ? 0 : items.length - 1) : (index + (event.key === "ArrowDown" ? 1 : items.length - 1)) % items.length];
+    active?.classList.remove("active");
+    active?.setAttribute("aria-selected", "false");
+    next.classList.add("active");
+    next.setAttribute("aria-selected", "true");
+    next.scrollIntoView({ block: "nearest" });
+    input.setAttribute("aria-activedescendant", next.id);
+  };
 }
 function taskData(formData) {
   const data = Object.fromEntries(formData);
@@ -123,29 +202,30 @@ function taskDetails(t, includeStatus = false) {
   return `<div class="task-details-panel"><p>${esc(t.description) || "No note provided."}</p><dl><div><dt>Deadline</dt><dd>${fmtDateTime(t.deadline)}</dd></div><div><dt>Importance</dt><dd>${t.importance.replace("-", " ")}</dd></div><div><dt>Progress</dt><dd>${t.currentProgress}%</dd></div><div><dt>Effective duration</dt><dd>${t.effectiveDuration}h${t.estimatedDuration == null ? " (default)" : ""}</dd></div><div><dt>Remaining workload</dt><dd>${t.remainingWorkload.toFixed(1)}h</dd></div><div><dt>Workload score</dt><dd>${t.workloadScore}</dd></div><div class="detail-priority"><dt>Priority score</dt><dd>${Math.round(t.priorityScore)}</dd></div>${includeStatus ? `<div class="detail-status"><dt>Status</dt><dd><span class="status ${status[0]}">${status[1]}</span></dd></div>` : ""}</dl></div>`;
 }
 function warningList(tasks) {
-  return tasks.length ? `<div class="card warning-banner warning-list"><div class="warning-heading"><div class="warning-icon" aria-hidden="true">!</div><div><h3>Workload Warning</h3><p>${tasks.length} ${tasks.length === 1 ? "task needs" : "tasks need"} attention</p></div></div>${tasks.map((t) => { const taskNameField = t.taskName || t.name; return `<article class="warning-task" tabindex="0" role="button" aria-expanded="false"><strong>${esc(taskNameField)}</strong><span class="status ${t.isOverdue ? "overdue" : "warning"}">${t.isOverdue ? "OVERDUE" : "High workload"}</span><small>${dueLabel(t.deadline)} &middot; ${t.remainingWorkload.toFixed(1)}h remaining</small>${taskDetails(t)}</article>`; }).join("")}</div>` : "";
+  return tasks.length ? `<div class="card warning-banner warning-list"><div class="warning-heading"><div class="warning-icon" aria-hidden="true">!</div><div><h3>Workload Warning</h3><p>${tasks.length} ${tasks.length === 1 ? "task needs" : "tasks need"} attention</p></div></div><div class="warning-items">${tasks.map((t) => { const taskNameField = t.taskName || t.name; return `<article class="warning-task" tabindex="0" role="button" aria-expanded="false"><div><strong>${esc(taskNameField)}</strong><small>${dueLabel(t.deadline)} &middot; ${t.remainingWorkload.toFixed(1)}h remaining</small></div><span class="status ${t.isOverdue ? "overdue" : "warning"}">${t.isOverdue ? "Overdue" : "High workload"}</span><span class="warning-arrow" aria-hidden="true">&rsaquo;</span>${taskDetails(t)}</article>`; }).join("")}</div></div>` : "";
 }
 function taskGroup(task) {
   if (task.completionStatus === "completed") return "completed";
   if (task.isOverdue) return "overdue";
   const label = dueLabel(task.deadline);
-  return label === "Due today" ? "today" : "upcoming";
+  return label === "Due today" ? "today" : "pending";
 }
-function taskRow(task, course, selectedTaskId) {
+function taskRow(task, course, selectedTaskId, selectedTaskIds = null) {
   const name = task.taskName || task.name;
   const importance = task.importance.replace("-", " ");
-  return `<article class="card task-row ${task.completionStatus === "completed" ? "completed" : ""} ${selectedTaskId === task.taskId ? "details-open" : ""}" data-task-id="${task.taskId}" tabindex="0" aria-expanded="${selectedTaskId === task.taskId}"><button class="check ${task.completionStatus === "completed" ? "checked" : ""}" data-complete="${task.taskId}" aria-label="Toggle task completion">${task.completionStatus === "completed" ? "&#10003;" : ""}</button><div class="task-summary"><div class="task-name">${esc(name)}</div><div class="task-sub">${course ? `<span class="task-course">${esc(course.courseName)}</span><i aria-hidden="true">&middot;</i>` : ""}<span>${dueLabel(task.deadline)}</span><span class="status ${task.importance}">${esc(importance)}</span><span class="task-progress">${task.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${task.priorityScore >= 75 ? "high" : ""}">${Math.round(task.priorityScore)}</strong></div><details class="task-menu"><summary aria-label="Task actions">&bull;&bull;&bull;</summary><div><button data-edit="${task.taskId}">Edit task</button><button class="danger" data-delete="${task.taskId}">Delete task</button></div></details><aside class="task-preview"><div class="task-preview-inner"><small>Task details</small><strong>${esc(name)}</strong>${taskDetails(task, true)}</div></aside></article>`;
+  const bulkSelected = selectedTaskIds?.has(task.taskId);
+  return `<article class="card task-row ${task.completionStatus === "completed" ? "completed" : ""} ${selectedTaskId === task.taskId ? "details-open" : ""} ${bulkSelected ? "bulk-selected" : ""}" data-task-id="${task.taskId}" tabindex="0" aria-expanded="${selectedTaskId === task.taskId}"><button class="check ${selectedTaskIds ? (bulkSelected ? "checked" : "") : (task.completionStatus === "completed" ? "checked" : "")}" ${selectedTaskIds ? `data-select="${task.taskId}" aria-label="Select ${esc(name)}" aria-pressed="${Boolean(bulkSelected)}"` : `data-complete="${task.taskId}" aria-label="Toggle task completion"`}>${selectedTaskIds ? (bulkSelected ? "&#10003;" : "") : (task.completionStatus === "completed" ? "&#10003;" : "")}</button><div class="task-summary"><div class="task-name">${esc(name)}</div><div class="task-sub">${course ? `<span class="task-course">${esc(course.courseName)}</span><i aria-hidden="true">&middot;</i>` : ""}<span>${dueLabel(task.deadline)}</span><span class="status ${task.importance}">${esc(importance)}</span><span class="task-progress">${task.currentProgress}%</span></div></div><div class="task-priority"><small>Priority</small><strong class="priority ${task.priorityScore >= 75 ? "high" : ""}">${Math.round(task.priorityScore)}</strong></div><details class="task-menu"><summary aria-label="Task actions">&bull;&bull;&bull;</summary><div><button data-edit="${task.taskId}">Edit task</button><button class="danger" data-delete="${task.taskId}">Delete task</button></div></details><aside class="task-preview"><div class="task-preview-inner"><small>Task details</small><strong>${esc(name)}</strong>${taskDetails(task, true)}</div></aside></article>`;
 }
-function groupedTasks(tasks, courses = [], selectedTaskId = null) {
+function groupedTasks(tasks, courses = [], selectedTaskId = null, selectedTaskIds = null) {
   const groups = [
     ["overdue", "Overdue"],
     ["today", "Today"],
-    ["upcoming", "Upcoming"],
+    ["pending", "Pending"],
     ["completed", "Completed"],
   ];
   return groups.map(([key, label]) => {
     const items = tasks.filter((task) => taskGroup(task) === key);
-    return items.length ? `<section class="task-group group-${key}"><header><h2>${label}</h2><span>${items.length}</span></header><div>${items.map((task) => taskRow(task, courses.find((course) => course.courseId === task.courseId), selectedTaskId)).join("")}</div></section>` : "";
+    return items.length ? `<section class="task-group group-${key}"><header><h2>${label}</h2><span>${items.length}</span></header><div>${items.map((task) => taskRow(task, courses.find((course) => course.courseId === task.courseId), selectedTaskId, selectedTaskIds)).join("")}</div></section>` : "";
   }).join("");
 }
 function wireExpandable(selector) {
@@ -293,10 +373,37 @@ async function initNotifications() {
   const badge = $("#notiBadge"), list = $("#notiList"), bell = $("#notiBellBtn"), dropdown = $("#notiDropdown");
   if (!badge || !list || !bell || !dropdown) return;
   const notifications = smartService.getUserNotifications(await taskService.getTasksByUserId());
+  let selectedNotification = null;
+  const openNotification = async (item) => {
+    try {
+      selectedNotification = item;
+      const raw = await taskService.getTaskById(item.taskId);
+      if (!raw || selectedNotification?.taskId !== item.taskId) return;
+      const [course] = await Promise.all([courseService.getCourseById(raw.courseId)]);
+      if (selectedNotification?.taskId !== item.taskId) return;
+      const task = smartService.enrich(raw), root = $("#modalRoot");
+      const close = () => {
+        selectedNotification = null;
+        root.innerHTML = "";
+        document.removeEventListener("keydown", onKeydown);
+      };
+      const onKeydown = (event) => { if (event.key === "Escape") close(); };
+      root.innerHTML = `<div class="modal-backdrop notification-backdrop open"><section class="modal card notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle"><button class="notification-close" type="button" aria-label="Close notification" data-notification-close>&times;</button><header><span class="notification-icon" aria-hidden="true">${item.type === "Overdue Task" ? "🚨" : "⚠️"}</span><div><span class="notification-type">${esc(item.type)}</span><h2 id="notificationTitle">${esc(task.taskName || task.name)}</h2></div></header><dl class="notification-details"><div><dt>Course</dt><dd>${esc(course?.courseName || "Course")}</dd></div><div><dt>Deadline</dt><dd>${fmtDateTime(task.deadline)}</dd></div><div><dt>Progress</dt><dd>${task.currentProgress}%</dd></div>${task.estimatedDuration != null ? `<div><dt>Remaining workload</dt><dd>${task.remainingWorkload.toFixed(1)}h</dd></div>` : ""}<div><dt>Importance</dt><dd>${esc(task.importance.replace("-", " "))}</dd></div><div><dt>Status</dt><dd><span class="notification-status ${task.isOverdue ? "overdue" : "warning"}">${esc(item.type)}</span></dd></div></dl><footer><button class="btn btn-outline" type="button" data-notification-close>Close</button><button class="btn btn-primary" type="button" data-view-notification-task>View Task</button></footer></section></div>`;
+      root.querySelectorAll("[data-notification-close]").forEach((button) => button.onclick = close);
+      root.querySelector(".notification-backdrop").onclick = (event) => { if (event.target === event.currentTarget) close(); };
+      root.querySelector("[data-view-notification-task]").onclick = () => {
+        const url = `course-detail.html?courseId=${encodeURIComponent(task.courseId)}&taskId=${encodeURIComponent(task.taskId)}`;
+        close();
+        location.href = url;
+      };
+      document.addEventListener("keydown", onKeydown);
+      root.querySelector("[data-notification-close]").focus();
+    } catch (error) { toast(error.message); }
+  };
   badge.textContent = notifications.length;
   badge.hidden = !notifications.length;
   list.innerHTML = notifications.length
-    ? notifications.map((item) => `<li class="noti-item"><span class="noti-title">${esc(item.title)}</span><span class="noti-desc">${esc(item.message)}</span></li>`).join("")
+    ? notifications.map((item, index) => `<li><button class="noti-item" type="button" data-notification-index="${index}"><span class="noti-title">${esc(item.title)}</span><span class="noti-type">${esc(item.type)}</span><span class="noti-desc">${esc(item.message)}</span></button></li>`).join("")
     : '<li class="noti-empty">Great job! You have no workload warnings.</li>';
   if (bell.dataset.bound) return;
   bell.dataset.bound = "true";
@@ -307,6 +414,21 @@ async function initNotifications() {
   document.addEventListener("click", (event) => {
     if (!dropdown.contains(event.target) && event.target !== bell) dropdown.hidden = true;
   });
+  list.onclick = (event) => {
+    const notification = event.target.closest("[data-notification-index]");
+    if (!notification) return;
+    dropdown.hidden = true;
+    openNotification(notifications[Number(notification.dataset.notificationIndex)]);
+  };
+}
+function courseTaskTable(tasks, selectedTaskId = null, selectedTaskIds = null) {
+  return `<div class="course-task-table"><div class="task-table-head" aria-hidden="true"><span>Task</span><span>Status</span><span>Priority</span><span>Due date</span><span>Estimated</span><span>Progress</span><span></span></div>${tasks.map((task) => {
+    const name = task.taskName || task.name,
+      status = task.completionStatus === "completed" ? ["completed", "Completed"] : task.isOverdue ? ["overdue", "Overdue"] : ["pending", "Pending"],
+      importance = task.importance.replace("-", " ");
+    const bulkSelected = selectedTaskIds?.has(task.taskId);
+    return `<article class="task-row table-task-row ${status[0] === "completed" ? "completed" : ""} ${selectedTaskId === task.taskId ? "details-open" : ""} ${bulkSelected ? "bulk-selected" : ""}" data-task-id="${task.taskId}" tabindex="0" aria-expanded="${selectedTaskId === task.taskId}"><div class="table-task-name"><button class="check ${bulkSelected ? "checked" : ""}" data-select="${task.taskId}" aria-label="Select ${esc(name)}" aria-pressed="${Boolean(bulkSelected)}">${bulkSelected ? "&#10003;" : ""}</button><strong>${esc(name)}</strong></div><span data-label="Status" class="status ${status[0]}">${status[1]}</span><span data-label="Priority" class="status ${task.importance}">${esc(importance)}</span><time data-label="Due date" datetime="${esc(task.deadline)}" class="${task.isOverdue ? "danger-text" : ""}">${dueLabel(task.deadline)}</time><span data-label="Estimated">${task.estimatedDuration == null ? "3.0h" : `${Number(task.estimatedDuration).toFixed(1)}h`}</span><div data-label="Progress" class="table-progress"><strong>${task.currentProgress}%</strong><div class="progress" aria-label="${task.currentProgress}% complete"><span style="width:${task.currentProgress}%"></span></div></div><details class="task-menu"><summary aria-label="Task actions">&bull;&bull;&bull;</summary><div><button data-edit="${task.taskId}">Edit task</button><button class="danger" data-delete="${task.taskId}">Delete task</button></div></details><aside class="task-preview"><div class="task-preview-inner"><small>Task details</small><strong>${esc(name)}</strong>${taskDetails(task, true)}</div></aside></article>`;
+  }).join("")}</div>`;
 }
 
 function initShell() {
@@ -323,7 +445,7 @@ function initShell() {
     themeToggle.checked = dark;
     themeToggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
     themeToggle.setAttribute("aria-label", themeToggle.title);
-    themeToggle.closest(".theme-switch")?.setAttribute("title", themeToggle.title);
+    themeToggle.closest("label")?.setAttribute("title", themeToggle.title);
   };
   syncThemeToggle();
   if (themeToggle) themeToggle.onchange = () => {
@@ -352,6 +474,7 @@ function initPageTransitions() {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const isPageLink = (link) => link.origin === location.origin && /\/(dashboard|course|course-detail|tasks)\.html$/.test(link.pathname);
   const hasNativePageTransitions = /^https?:$/.test(location.protocol) && CSS.supports("selector(:active-view-transition)");
+  if (!hasNativePageTransitions) document.documentElement.classList.add("fallback-page-transition");
   document.addEventListener("pointerenter", (event) => {
     const link = event.target.closest?.("a[href]");
     if (link && isPageLink(link)) fetch(link.href, { priority: "low" }).catch(() => {});
@@ -388,9 +511,6 @@ function initDashboard() {
     });
     $(".pulse-bar").classList.toggle("popover-open", Boolean(openPulse));
   };
-  const hour = new Date().getHours();
-  const salutation = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  $("#greeting").innerHTML = `${salutation},<span>${esc(u.studentName || u.username)} <span class="greeting-wave" aria-hidden="true">👋</span></span>`;
   const render = async () => {
     try {
       const courses = await courseService.getCoursesByUserId(), 
@@ -411,6 +531,7 @@ function initDashboard() {
         todayCompleted = todayTasks.filter((task) => task.completionStatus === "completed").length,
         todayInProgress = todayTasks.filter((task) => Number(task.currentProgress) > 0 && Number(task.currentProgress) < 100).length,
         todayAttention = todayTasks.filter((task) => task.isOverdue || task.hasWorkloadWarning).length,
+        todayPercentage = todayTasks.length ? Math.round(todayCompleted / todayTasks.length * 1000) / 10 : 0,
         todayProgress = todayTasks.length ? Math.round(todayCompleted / todayTasks.length * 100) : 0,
         todayLabel = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(today);
       const pulse = [
@@ -424,8 +545,8 @@ function initDashboard() {
         return `<article class="stat" data-pulse="${key}" role="button" tabindex="0" aria-controls="pulse-${key}" aria-expanded="false"><strong>${count}</strong><span>${label}</span><div id="pulse-${key}" class="pulse-popover" role="dialog" aria-label="${label}" aria-hidden="true"><header><strong>${label} <span>&middot; ${count}</span></strong></header>${visible.length ? `<div class="pulse-task-list">${visible.map((t) => `<a href="course-detail.html?courseId=${encodeURIComponent(t.courseId)}&taskId=${encodeURIComponent(t.taskId)}"><span>${esc(t.taskName || t.name)}</span><small>${esc(detail(t))}</small></a>`).join("")}</div>` : `<p class="pulse-empty">${empty}</p>`}${items.length > visible.length ? `<a class="pulse-view-all" href="tasks.html?status=${key}">View all &rarr;</a>` : ""}</div></article>`;
       }).join("");
       updatePulse(openPulse);
-      $("#attentionArea").innerHTML = `<article class="card overview-card attention-card"><div class="attention-head"><div class="attention-title"><span class="attention-warning-icon" aria-hidden="true">!</span><div><h2>Needs Attention</h2><p>These tasks are at risk due to upcoming deadlines or high workload.</p></div></div><span class="overview-caption">Sorted by urgency</span></div><div class="attention-list">${attention.length ? attention.map((t) => { const course = courses.find((item) => item.courseId === t.courseId); const taskNameField = t.taskName || t.name; return `<div class="attention-task"><button class="task-check" type="button" data-dashboard-complete="${t.taskId}" aria-label="Mark ${esc(taskNameField)} complete"></button><a class="attention-task-link" href="course-detail.html?courseId=${encodeURIComponent(t.courseId)}&taskId=${encodeURIComponent(t.taskId)}"><span class="attention-copy"><strong>${esc(taskNameField)}</strong><small>${esc(course?.courseName || "Course")}</small></span><span class="attention-meta"><span class="attention-deadline"><i aria-hidden="true">&#128197;</i>${dueLabel(t.deadline)}</span><span class="attention-progress"><i style="--task-progress:${t.currentProgress}" aria-hidden="true"></i>${t.currentProgress}%</span><span><i aria-hidden="true">&#9716;</i>~${Number(t.remainingWorkload.toFixed(1))}h</span></span></a><span class="attention-status ${t.isOverdue ? "overdue" : "warning"}"><span aria-hidden="true">${t.isOverdue ? "&#128308;" : "&#128293;"}</span>${t.isOverdue ? "Overdue" : "Workload warning"}</span><span class="row-arrow" aria-hidden="true">&rsaquo;</span></div>`; }).join("") : `<div class="mini-empty"><img src="../source/studyflow-mascot-pack/cat-good-job.png" alt=""><strong>You're all caught up.</strong><span>No tasks currently need attention.</span></div>`}</div></article>`;
-      $("#progressArea").innerHTML = `<article class="card overview-card progress-card"><div class="summary-head"><div class="summary-title"><span class="section-icon" aria-hidden="true">&#128197;</span><div><h2>Today's Summary</h2><p>Here's how your tasks look today.</p></div></div><time datetime="${localDateTimeValue(today).slice(0, 10)}">${todayLabel}</time></div><div class="today-summary"><div class="progress-ring" style="--progress:${todayProgress}" role="img" aria-label="${todayCompleted} of ${todayTasks.length} tasks due today completed"><span><strong>${todayCompleted}/${todayTasks.length}</strong><small>tasks today</small></span></div><div class="summary-statuses"><div class="summary-status attention"><i aria-hidden="true"></i><strong>${todayAttention}</strong><span>need attention</span></div><div class="summary-status active"><i aria-hidden="true"></i><strong>${todayInProgress}</strong><span>in progress</span></div><div class="summary-status done"><i aria-hidden="true"></i><strong>${todayCompleted}</strong><span>completed</span></div></div></div><div class="progress-message"><img src="../source/studyflow-decoration-pack/plant-kawaii.png" alt="" aria-hidden="true"><span><strong>You're getting there!</strong><small>Keep going, you've got this.</small></span></div></article>`;
+      $("#attentionArea").innerHTML = `<article class="card overview-card attention-card"><div class="attention-head"><div class="attention-title"><span class="attention-warning-icon" aria-hidden="true">!</span><div><h2>Warning</h2><p>These tasks are at risk due to upcoming deadlines or high workload.</p></div></div><span class="overview-caption">Sorted by urgency</span></div><div class="attention-list">${attention.length ? attention.map((t) => { const course = courses.find((item) => item.courseId === t.courseId); const taskNameField = t.taskName || t.name; return `<div class="attention-task"><button class="task-check" type="button" data-dashboard-complete="${t.taskId}" aria-label="Mark ${esc(taskNameField)} complete"></button><a class="attention-task-link" href="course-detail.html?courseId=${encodeURIComponent(t.courseId)}&taskId=${encodeURIComponent(t.taskId)}"><span class="attention-copy"><strong>${esc(taskNameField)}</strong><small>${esc(course?.courseName || "Course")}</small></span><span class="attention-meta"><span class="attention-deadline"><i aria-hidden="true">&#128197;</i>${dueLabel(t.deadline)}</span><span class="attention-progress"><i style="--task-progress:${t.currentProgress}" aria-hidden="true"></i>${t.currentProgress}%</span><span><i aria-hidden="true">&#9716;</i>~${Number(t.remainingWorkload.toFixed(1))}h</span></span></a>${t.isOverdue ? `<span class="attention-status overdue"><span aria-hidden="true">&#128308;</span>Overdue</span>` : ""}<span class="row-arrow" aria-hidden="true">&rsaquo;</span></div>`; }).join("") : `<div class="mini-empty"><img src="../source/studyflow-mascot-pack/cat-good-job.png" alt=""><strong>You're all caught up.</strong><span>No tasks currently need attention.</span></div>`}</div></article>`;
+      $("#progressArea").innerHTML = `<article class="card overview-card progress-card"><div class="summary-head"><div class="summary-title"><span class="section-icon" aria-hidden="true">&#128197;</span><h2>Today's Summary</h2></div><time datetime="${localDateTimeValue(today).slice(0, 10)}">${todayLabel}</time></div><div class="today-summary"><div class="progress-ring" style="--progress:${todayProgress}" role="img" aria-label="${todayPercentage}% of today's tasks completed"><span><strong>${todayPercentage}%</strong><small>tasks today</small></span></div><div class="summary-statuses"><div class="summary-status attention"><i aria-hidden="true"></i><strong>${todayAttention}</strong><span>need attention</span></div><div class="summary-status active"><i aria-hidden="true"></i><strong>${todayInProgress}</strong><span>in progress</span></div><div class="summary-status done"><i aria-hidden="true"></i><strong>${todayCompleted}</strong><span>completed</span></div></div></div><div class="progress-message"><img src="../source/studyflow-decoration-pack/plant-kawaii.png" alt="" aria-hidden="true"><span><strong>You're getting there!</strong><small>Keep going, you've got this.</small></span></div></article>`;
       $("#upcomingTasks").innerHTML = upcoming.length ? `<div class="upcoming-head"><span>Deadline</span><span>Task</span><span>Course</span><span>Priority</span><span>Progress</span><span></span></div>${upcoming.map((task) => { const course = courses.find((item) => item.courseId === task.courseId), taskName = task.taskName || task.name; return `<div class="upcoming-row"><time datetime="${esc(task.deadline)}">${fmtDate(task.deadline)}</time><a class="task-link" href="course-detail.html?courseId=${encodeURIComponent(task.courseId)}"><span>${esc(taskName)}</span><span class="row-arrow" aria-hidden="true">›</span></a><span>${esc(course?.courseName || "Course")}</span><strong>${Math.round(task.priorityScore)}</strong><div class="task-progress"><div class="progress" aria-label="${task.currentProgress}% complete"><span style="width:${task.currentProgress}%"></span></div><span>${task.currentProgress}%</span></div></div>`; }).join("")}` : `<div class="mini-empty compact"><strong>You're all caught up.</strong><span>No pending tasks.</span></div>`;
       document.querySelectorAll("[data-dashboard-complete]").forEach((button) => button.onclick = async () => {
         try {
@@ -461,7 +582,7 @@ function initDashboard() {
 function initCourseManagement(u) {
   const main = document.querySelector(".course-main");
   let query = "", statusFilter = "all", sort = "name", view = localStorage.getItem("studyflow_course_view") === "list" ? "list" : "grid";
-  main.innerHTML = `<img class="course-decoration course-plant" src="../source/studyflow-decoration-pack/plant-pot.png" alt="" aria-hidden="true"><section class="course-management-head" aria-labelledby="coursesTitle"><div><img class="course-rays" src="../source/studyflow-decoration-pack/accent-rays-yellow.png" alt="" aria-hidden="true"><h1 id="coursesTitle">My Courses</h1><p>Manage your courses and keep your study organized.</p></div><div class="course-hero-art" aria-hidden="true"><img class="course-mascot" src="../source/studyflow-mascot-pack/cat-reading.png" alt=""><img class="course-books" src="../source/studyflow-decoration-pack/books-stack.png" alt=""><img class="course-note" src="../source/studyflow-note/you-got-this.png" alt=""></div><button id="addCourseBtn" class="btn btn-primary"><span aria-hidden="true">+</span> Add course</button></section><section class="course-toolbar" aria-label="Course controls"><label class="course-search"><span aria-hidden="true">⌕</span><span class="sr-only">Search courses</span><input id="courseSearch" class="input" type="search" placeholder="Search courses..."></label><label><span class="sr-only">Filter by status</span><select id="courseStatus" class="select"><option value="all">All Status</option><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option></select></label><label><span class="sr-only">Sort courses</span><select id="courseSort" class="select"><option value="name">Sort by: Name</option><option value="progress-desc">Progress: High to low</option><option value="progress-asc">Progress: Low to high</option></select></label><div class="view-toggle" role="group" aria-label="Course view"><button type="button" data-view="grid" aria-label="Grid view">▦ <span>Grid</span></button><button type="button" data-view="list" aria-label="List view">☷ <span>List</span></button></div></section><p id="courseResultCount" class="course-result-count" aria-live="polite"></p><section id="managedCourseGrid" class="course-grid management-grid"></section><img class="course-decoration course-leaves" src="../source/studyflow-decoration-pack/leaf-bush.png" alt="" aria-hidden="true">`;
+  main.innerHTML = `<section class="course-management-head" aria-labelledby="coursesTitle"><div><img class="course-rays" src="../source/studyflow-decoration-pack/accent-rays-yellow.png" alt="" aria-hidden="true"><h1 id="coursesTitle">My Courses</h1><p>Manage your courses and keep your study organized.</p></div><button id="addCourseBtn" class="btn btn-primary"><span aria-hidden="true">+</span> Add course</button></section><section class="course-toolbar" aria-label="Course controls"><label class="course-search"><span aria-hidden="true">⌕</span><span class="sr-only">Search courses</span><input id="courseSearch" class="input" type="search" placeholder="Search courses..."></label><label><span class="sr-only">Filter by status</span><select id="courseStatus" class="select"><option value="all">All Status</option><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="completed">Completed</option></select></label><label><span class="sr-only">Sort courses</span><select id="courseSort" class="select"><option value="name">Sort by: Name</option><option value="progress-desc">Progress: High to low</option><option value="progress-asc">Progress: Low to high</option></select></label><div class="view-toggle" role="group" aria-label="Course view"><button type="button" data-view="grid" aria-label="Grid view">▦ <span>Grid</span></button><button type="button" data-view="list" aria-label="List view">☷ <span>List</span></button></div></section><p id="courseResultCount" class="course-result-count" aria-live="polite"></p><section id="managedCourseGrid" class="course-grid management-grid"></section>`;
   const statusOf = (progress, total) => total === 0 || progress === 0 ? ["not-started", "Not Started"] : progress === 100 ? ["completed", "Completed"] : ["in-progress", "In Progress"];
   const render = async () => {
     try {
@@ -539,7 +660,9 @@ function initCourseDetail() {
   }
   let filter = "all",
     sort = "priority",
+    query = "",
     selectedTaskId = params.get("taskId");
+  const selectedTaskIds = new Set(), bulkActions = $("#bulkActions");
   const render = async () => {
     try {
       const raw = await taskService.list(courseId),
@@ -560,9 +683,9 @@ function initCourseDetail() {
       };
       const progress = taskService.getProgress(all);
       $("#courseHero").innerHTML =
-        `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div class="course-summary"><h1>${esc(course.courseName)}</h1><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div><div class="course-summary-row"><span>${all.length} tasks · ${counts.completed} completed</span><strong>${progress}%</strong></div></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></section>`;
+        `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div><h1>${esc(course.courseName)}</h1><p>${all.length} tasks &middot; ${counts.completed} completed</p></div></div><div class="course-overview"><div class="course-progress-copy"><strong>${progress}% complete</strong><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></div></section>`;
       $("#courseStats").innerHTML =
-        `<article class="card course-stat"><span>Pending</span><strong>${counts.pending}</strong></article><article class="card course-stat"><span>Completed</span><strong style="color:var(--green)">${counts.completed}</strong></article><article class="card course-stat"><span>Overdue</span><strong style="color:var(--red)">${counts.overdue}</strong></article>`;
+        `<article class="course-stat pending"><span>Pending</span><strong>${counts.pending}</strong></article><article class="course-stat completed"><span>Completed</span><strong>${counts.completed}</strong></article><article class="course-stat overdue"><span>Overdue</span><strong>${counts.overdue}</strong></article>`;
       $("#warningArea").innerHTML = warningList(smartService.getWorkloadWarning(raw));
       wireExpandable("#warningArea .warning-task");
       $("#filters").innerHTML = [
@@ -573,11 +696,11 @@ function initCourseDetail() {
       ]
         .map(
           ([v, l]) =>
-            `<button class="filter ${filter === v ? "active" : ""}" data-filter="${v}">${l}</button>`,
+            `<button class="filter ${filter === v ? "active" : ""}" data-filter="${v}">${l} (${v === "all" ? all.length : counts[v]})</button>`,
         )
         .join("");
       let list = all.filter(
-        (t) => filter === "all" || t.displayStatus === filter,
+        (t) => (filter === "all" || t.displayStatus === filter) && (t.taskName || t.name).toLowerCase().includes(query),
       );
       if (sort !== "priority") list.sort((a, b) =>
         sort === "deadline"
@@ -588,8 +711,12 @@ function initCourseDetail() {
               ? new Date(b.createdAt) - new Date(a.createdAt)
               : 0,
       );
+      const visibleIds = new Set(list.map((task) => task.taskId));
+      selectedTaskIds.forEach((id) => { if (!visibleIds.has(id)) selectedTaskIds.delete(id); });
+      bulkActions.hidden = selectedTaskIds.size === 0;
+      bulkActions.innerHTML = selectedTaskIds.size ? `<strong><span aria-hidden="true">&#10003;</span> ${selectedTaskIds.size} selected</strong><div><button class="btn btn-outline" type="button" data-select-all>${selectedTaskIds.size === list.length ? "Deselect all" : "Select all"}</button><button class="btn btn-primary" type="button" data-bulk-complete>Complete</button><button class="btn btn-danger" type="button" data-bulk-delete>Delete</button><button class="bulk-clear" type="button" data-clear-selection aria-label="Clear selection">&times;</button></div>` : "";
       $("#taskList").innerHTML = list.length
-        ? groupedTasks(list, [], selectedTaskId)
+        ? courseTaskTable(list, selectedTaskId, selectedTaskIds)
         : `<div class="empty"><h3>${filter === "all" ? "No tasks yet" : "No matching tasks"}</h3><p>${filter === "all" ? "Add your first task to start tracking this course." : "Try another filter."}</p></div>`;
       document.querySelectorAll("[data-filter]").forEach(
         (b) =>
@@ -598,16 +725,12 @@ function initCourseDetail() {
             render();
           }),
       );
-      document.querySelectorAll("[data-complete]").forEach(
+      document.querySelectorAll("[data-select]").forEach(
         (b) =>
-          (b.onclick = async () => {
-            try {
-              const t = raw.find((x) => x.taskId === b.dataset.complete);
-              await taskService.toggleCompleted(t.taskId);
-              await render();
-            } catch (error) {
-              toast(error.message);
-            }
+          (b.onclick = () => {
+            const id = b.dataset.select;
+            selectedTaskIds.has(id) ? selectedTaskIds.delete(id) : selectedTaskIds.add(id);
+            render();
           }),
       );
       document.querySelectorAll("[data-delete]").forEach(
@@ -616,6 +739,7 @@ function initCourseDetail() {
             if (confirm("Delete this task?")) {
               try {
                 await taskService.remove(b.dataset.delete);
+                selectedTaskIds.delete(b.dataset.delete);
                 if (selectedTaskId === b.dataset.delete) selectedTaskId = null;
                 await render();
               } catch (error) {
@@ -661,7 +785,19 @@ function initCourseDetail() {
           }
         };
       });
+      bulkActions.querySelector("[data-select-all]")?.addEventListener("click", () => { const allSelected = list.every((task) => selectedTaskIds.has(task.taskId)); list.forEach((task) => allSelected ? selectedTaskIds.delete(task.taskId) : selectedTaskIds.add(task.taskId)); render(); });
+      bulkActions.querySelector("[data-clear-selection]")?.addEventListener("click", () => { selectedTaskIds.clear(); render(); });
+      bulkActions.querySelector("[data-bulk-complete]")?.addEventListener("click", async () => { try { await Promise.all([...selectedTaskIds].map((id) => taskService.setProgress(id, 100))); selectedTaskIds.clear(); await render(); toast("Tasks completed"); } catch (error) { toast(error.message); } });
+      bulkActions.querySelector("[data-bulk-delete]")?.addEventListener("click", () => {
+        const count = selectedTaskIds.size;
+        modal(`Delete ${count} ${count === 1 ? "task" : "tasks"}?`, `<form class="modal-form bulk-delete-form"><p>This action will permanently delete the selected ${count === 1 ? "task" : "tasks"}. This cannot be undone.</p><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-danger">Delete</button></div></form>`, async (_, close) => { try { await Promise.all([...selectedTaskIds].map((id) => taskService.remove(id))); selectedTaskIds.clear(); close(); await render(); toast(`${count} ${count === 1 ? "task" : "tasks"} deleted`); } catch (error) { toast(error.message); } });
+      });
       $("#sortSelect").value = sort;
+      $("#taskSearch").value = query;
+      $("#taskSearch").oninput = (e) => {
+        query = e.target.value.trim().toLowerCase();
+        render();
+      };
       $("#sortSelect").onchange = (e) => {
         sort = e.target.value;
         render();
@@ -720,27 +856,60 @@ function initAllTasks() {
   const user = initShell();
   if (!user) return;
   const requestedStatus = new URLSearchParams(location.search).get("status");
-  let status = ["pending", "overdue", "today", "upcoming", "completed"].includes(requestedStatus) ? requestedStatus : "all", courseId = "all", query = "", sort = "priority", selectedTaskId = null;
+  let status = ["pending", "overdue", "today", "completed"].includes(requestedStatus) ? requestedStatus : "all", courseId = "all", query = "", sort = "priority", selectedTaskId = null, courses = [];
+  const selectedTaskIds = new Set(), bulkActions = $("#bulkActions"), courseAutocomplete = $("#courseAutocomplete"), courseInput = $("#courseFilter"), courseOptions = $("#courseOptions");
+  const closeCourseOptions = () => {
+    courseAutocomplete.classList.remove("open");
+    courseInput.setAttribute("aria-expanded", "false");
+    courseInput.removeAttribute("aria-activedescendant");
+  };
+  const showCourseOptions = () => {
+    const search = courseInput.value.trim().toLowerCase();
+    const matches = courses.filter((course) => course.courseName.toLowerCase().includes(search));
+    courseOptions.innerHTML = matches.length ? matches.map((course) => {
+      const start = course.courseName.toLowerCase().indexOf(search), end = start + search.length;
+      const name = search ? `${esc(course.courseName.slice(0, start))}<mark>${esc(course.courseName.slice(start, end))}</mark>${esc(course.courseName.slice(end))}` : esc(course.courseName);
+      return `<button id="course-option-${course.courseId}" class="course-option" type="button" role="option" aria-selected="false" data-course-id="${course.courseId}">${name}</button>`;
+    }).join("") : '<p class="course-options-empty">No courses found</p>';
+    courseAutocomplete.classList.add("open");
+    courseInput.setAttribute("aria-expanded", "true");
+  };
+  const selectCourse = (id) => {
+    const course = courses.find((item) => item.courseId === id);
+    if (!course) return;
+    courseId = course.courseId;
+    courseInput.value = course.courseName;
+    closeCourseOptions();
+    render();
+  };
   const render = async () => {
     try {
-      const courses = await courseService.getCoursesByUserId();
+      courses = await courseService.getCoursesByUserId();
       const raw = await taskService.getTasksByUserId();
       const tasks = raw.map(smartService.enrich);
-      const counts = Object.fromEntries(["overdue", "today", "upcoming", "completed"].map((key) => [key, tasks.filter((task) => taskGroup(task) === key).length]));
-      $("#taskStats").innerHTML = `<article class="card course-stat"><span>Overdue</span><strong class="danger-text">${counts.overdue}</strong></article><article class="card course-stat"><span>Due today</span><strong>${counts.today}</strong></article><article class="card course-stat"><span>Upcoming</span><strong>${counts.upcoming}</strong></article><article class="card course-stat"><span>Completed</span><strong class="success-text">${counts.completed}</strong></article>`;
-      $("#filters").innerHTML = [["all", "All"], ["pending", "Pending"], ["overdue", "Overdue"], ["today", "Today"], ["upcoming", "Upcoming"], ["completed", "Completed"]].map(([value, label]) => `<button class="filter ${status === value ? "active" : ""}" data-filter="${value}">${label}</button>`).join("");
-      $("#courseFilter").innerHTML = `<option value="all">All courses</option>${courses.map((course) => `<option value="${course.courseId}">${esc(course.courseName)}</option>`).join("")}`;
-      $("#courseFilter").value = courseId;
-      let visible = tasks.filter((task) => (status === "all" || (status === "pending" ? !task.isOverdue && task.completionStatus !== "completed" : taskGroup(task) === status)) && (courseId === "all" || task.courseId === courseId) && (task.taskName || task.name).toLowerCase().includes(query));
+      $("#filters").innerHTML = [["all", "All"], ["pending", "Pending"], ["overdue", "Overdue"], ["today", "Today"], ["completed", "Completed"]].map(([value, label]) => `<button class="filter ${status === value ? "active" : ""}" data-filter="${value}">${label}</button>`).join("");
+      courseInput.value = courseId === "all" ? "" : courses.find((course) => course.courseId === courseId)?.courseName || "";
+      let visible = tasks.filter((task) => (status === "all" || taskGroup(task) === status) && (courseId === "all" || task.courseId === courseId) && (task.taskName || task.name).toLowerCase().includes(query));
       visible.sort((a, b) => sort === "deadline" ? new Date(a.deadline) - new Date(b.deadline) : sort === "importance" ? b.importanceScore - a.importanceScore : b.priorityScore - a.priorityScore);
-      $("#taskList").innerHTML = visible.length ? groupedTasks(visible, courses, selectedTaskId) : `<div class="empty course-empty-state"><h3>No matching tasks</h3><p>Try another filter or create a new task.</p></div>`;
+      const visibleIds = new Set(visible.map((task) => task.taskId));
+      selectedTaskIds.forEach((id) => { if (!visibleIds.has(id)) selectedTaskIds.delete(id); });
+      bulkActions.hidden = selectedTaskIds.size === 0;
+      bulkActions.innerHTML = selectedTaskIds.size ? `<strong><span aria-hidden="true">&#10003;</span> ${selectedTaskIds.size} selected</strong><div><button class="btn btn-outline" type="button" data-select-all>${selectedTaskIds.size === visible.length ? "Deselect all" : "Select all"}</button><button class="btn btn-primary" type="button" data-bulk-complete>Complete</button><button class="btn btn-danger" type="button" data-bulk-delete>Delete</button><button class="bulk-clear" type="button" data-clear-selection aria-label="Clear selection">&times;</button></div>` : "";
+      $("#taskList").innerHTML = visible.length ? groupedTasks(visible, courses, selectedTaskId, selectedTaskIds) : `<div class="empty course-empty-state"><h3>No matching tasks</h3><p>Try another filter or create a new task.</p></div>`;
       document.querySelectorAll("[data-filter]").forEach((button) => button.onclick = () => { status = button.dataset.filter; render(); });
-      document.querySelectorAll("[data-complete]").forEach((button) => button.onclick = async () => { try { await taskService.toggleCompleted(button.dataset.complete); render(); } catch (error) { toast(error.message); } });
+      document.querySelectorAll("[data-select]").forEach((button) => button.onclick = () => { const id = button.dataset.select; selectedTaskIds.has(id) ? selectedTaskIds.delete(id) : selectedTaskIds.add(id); render(); });
       document.querySelectorAll("[data-edit]").forEach((button) => button.onclick = () => {
         const task = raw.find((item) => item.taskId === button.dataset.edit);
         modal("Edit task", taskForm(task), async (data, close) => { try { await taskService.update(task.taskId, taskData(data)); close(); render(); } catch (error) { toast(error.message); } });
       });
-      document.querySelectorAll("[data-delete]").forEach((button) => button.onclick = async () => { if (confirm("Delete this task?")) { try { await taskService.remove(button.dataset.delete); render(); } catch (error) { toast(error.message); } } });
+      document.querySelectorAll("[data-delete]").forEach((button) => button.onclick = async () => { if (confirm("Delete this task?")) { try { selectedTaskIds.delete(button.dataset.delete); await taskService.remove(button.dataset.delete); render(); } catch (error) { toast(error.message); } } });
+      bulkActions.querySelector("[data-select-all]")?.addEventListener("click", () => { const allSelected = visible.every((task) => selectedTaskIds.has(task.taskId)); visible.forEach((task) => allSelected ? selectedTaskIds.delete(task.taskId) : selectedTaskIds.add(task.taskId)); render(); });
+      bulkActions.querySelector("[data-clear-selection]")?.addEventListener("click", () => { selectedTaskIds.clear(); render(); });
+      bulkActions.querySelector("[data-bulk-complete]")?.addEventListener("click", async () => { try { await Promise.all([...selectedTaskIds].map((id) => taskService.setProgress(id, 100))); selectedTaskIds.clear(); await render(); toast("Tasks completed"); } catch (error) { toast(error.message); } });
+      bulkActions.querySelector("[data-bulk-delete]")?.addEventListener("click", () => {
+        const count = selectedTaskIds.size;
+        modal(`Delete ${count} ${count === 1 ? "task" : "tasks"}?`, `<form class="modal-form bulk-delete-form"><p>This action will permanently delete the selected ${count === 1 ? "task" : "tasks"}. This cannot be undone.</p><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-danger">Delete</button></div></form>`, async (_, close) => { try { await Promise.all([...selectedTaskIds].map((id) => taskService.remove(id))); selectedTaskIds.clear(); close(); await render(); toast(`${count} ${count === 1 ? "task" : "tasks"} deleted`); } catch (error) { toast(error.message); } });
+      });
       document.querySelectorAll(".task-row").forEach((row) => {
         const preview = row.querySelector(".task-preview");
         preview.style.setProperty("--details-height", `${preview.scrollHeight}px`);
@@ -755,12 +924,49 @@ function initAllTasks() {
     } catch (error) { toast(error.message); }
   };
   $("#taskSearch").oninput = (event) => { query = event.target.value.trim().toLowerCase(); render(); };
-  $("#courseFilter").onchange = (event) => { courseId = event.target.value; render(); };
+  courseInput.oninput = (event) => {
+    const value = event.target.value.trim();
+    const course = courses.find((item) => item.courseName.toLowerCase() === value.toLowerCase());
+    showCourseOptions();
+    if (!value) { courseId = "all"; render(); }
+    else if (course) { courseId = course.courseId; closeCourseOptions(); render(); }
+  };
+  courseInput.onfocus = () => showCourseOptions();
+  courseInput.onblur = () => setTimeout(() => {
+    closeCourseOptions();
+    courseInput.value = courseId === "all" ? "" : courses.find((course) => course.courseId === courseId)?.courseName || "";
+  });
+  courseOptions.onmousedown = (event) => {
+    const option = event.target.closest("[data-course-id]");
+    if (option) event.preventDefault();
+  };
+  courseOptions.onclick = (event) => {
+    const option = event.target.closest("[data-course-id]");
+    if (option) selectCourse(option.dataset.courseId);
+  };
+  courseInput.onkeydown = (event) => {
+    const options = [...courseOptions.querySelectorAll(".course-option")];
+    const active = courseOptions.querySelector(".active");
+    if (event.key === "Escape") return closeCourseOptions();
+    if (event.key === "Enter" && active) { event.preventDefault(); return selectCourse(active.dataset.courseId); }
+    if (!["ArrowDown", "ArrowUp"].includes(event.key) || !options.length) return;
+    event.preventDefault();
+    if (!courseAutocomplete.classList.contains("open")) showCourseOptions();
+    const index = options.indexOf(active);
+    const next = options[index < 0 ? (event.key === "ArrowDown" ? 0 : options.length - 1) : (index + (event.key === "ArrowDown" ? 1 : options.length - 1)) % options.length];
+    active?.classList.remove("active");
+    active?.setAttribute("aria-selected", "false");
+    next.classList.add("active");
+    next.setAttribute("aria-selected", "true");
+    next.scrollIntoView({ block: "nearest" });
+    courseInput.setAttribute("aria-activedescendant", next.id);
+  };
+  document.addEventListener("mousedown", (event) => { if (!courseAutocomplete.contains(event.target)) closeCourseOptions(); });
   $("#sortSelect").onchange = (event) => { sort = event.target.value; render(); };
   $("#addTaskBtn").onclick = async () => {
     const courses = await courseService.getCoursesByUserId();
-    if (!courses.length) return toast("Create a course before adding tasks");
     modal("Add task", taskFormWithCourse({}, courses), async (data, close) => { try { await taskService.create(taskData(data)); close(); render(); toast("Task added"); } catch (error) { toast(error.message); } });
+    wireTaskCourseSelector(courses);
   };
   render();
 }
