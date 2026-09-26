@@ -312,16 +312,6 @@ body[data-page="dashboard"] .stats-grid { grid-template-columns: repeat(4, minma
 
 /* Cozy dashboard composition */
 body[data-page="dashboard"] { overflow-x: clip; }
-body[data-page="dashboard"]::before {
-  background-image: url("../source/background/dashboard_light.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-[data-theme="dark"] body[data-page="dashboard"]::before {
-  background-image: url("../source/background/dashboard_dark.png");
-}
 .dashboard-main {
   position: relative;
   padding: 28px 0 76px;

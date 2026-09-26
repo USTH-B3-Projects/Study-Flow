@@ -75,12 +75,9 @@ body:before {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(59, 130, 246, .12), transparent 38%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, .1), transparent 42%),
-    linear-gradient(180deg, #faf8ff 0%, var(--page) 70%);
+  background: url("../source/background/dashboard_light.png") center / cover no-repeat fixed;
 }
-[data-theme="dark"] body:before { background: radial-gradient(circle at 94% 12%, #142844 0 13%, transparent 34%), var(--bg-primary); }
+[data-theme="dark"] body:before { background-image: url("../source/background/dashboard_dark.png"); }
 a {
   color: inherit;
   text-decoration: none;
