@@ -724,7 +724,7 @@ body[data-page="course-detail"] .task-preview-inner { padding-top: 15px; }
   .task-table-head, .table-task-row { grid-template-columns: minmax(210px, 1.5fr) 90px 90px 110px 125px 40px; }
   .task-table-head > :nth-child(5), .table-task-row > [data-label="Estimated"] { display: none; }
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   body[data-page="course-detail"] .course-main { width: min(100% - 28px, 1450px); }
   body[data-page="course-detail"] .course-title { align-items: flex-start; }
   body[data-page="course-detail"] .course-title .course-dot { width: 62px; height: 62px; font-size: 27px; }
@@ -849,7 +849,7 @@ body[data-page="course-detail"] .table-task-row:first-child { border-top: 0; }
   body[data-page="course-detail"] .table-task-row { grid-template-columns: 24px minmax(190px, 1.5fr) minmax(130px, 1fr) 95px minmax(115px, .8fr) 60px 34px; }
   .task-remaining { display: none; }
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   body[data-page="course-detail"] .course-main { width: min(100% - 24px, 1320px); }
   body[data-page="course-detail"] .course-hero { grid-template-columns: 1fr auto; padding: 18px; }
   body[data-page="course-detail"] .course-title { grid-column: 1 / -1; }
@@ -880,4 +880,21 @@ body[data-page="course-detail"] .table-task-row:first-child { border-top: 0; }
   body[data-page="course-detail"] .toolbar-actions { display: grid; grid-template-columns: 1fr; }
   body[data-page="course-detail"] .toolbar-actions .select { width: 100%; }
   .task-detail-actions { flex-wrap: wrap; }
+}
+
+@media (max-width: 900px) {
+  .all-tasks-main .task-toolbar { align-items: stretch; }
+  .all-tasks-main .filters { width: 100%; }
+  .all-tasks-main .toolbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .all-tasks-main #taskSearch { grid-column: 1 / -1; }
+  .all-tasks-main :is(#taskSearch, .course-autocomplete, .toolbar-actions .select) { width: 100%; }
+}
+
+@media (max-width: 560px) {
+  .all-tasks-main .toolbar-actions { grid-template-columns: 1fr; }
+  .all-tasks-main #taskSearch { grid-column: auto; }
 }

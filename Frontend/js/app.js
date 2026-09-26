@@ -313,6 +313,17 @@ function courseForm(course = {}) {
   return `<form class="modal-form"><div class="form-field"><label>Course name</label><input class="input" name="courseName" required value="${esc(course.courseName || "")}" placeholder="e.g. Deep Learning"></div><div class="form-field"><label>Color</label><input class="input" name="color" type="color" value="${course.color || "#1769ff"}"></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary">Save course</button></div></form>`;
 }
 function wireAuth() {
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    const input = document.getElementById(button.dataset.togglePassword);
+    const show = () => { input.type = "text"; button.setAttribute("aria-pressed", "true"); };
+    const hide = () => { input.type = "password"; button.setAttribute("aria-pressed", "false"); };
+    button.addEventListener("pointerdown", (event) => { button.setPointerCapture(event.pointerId); show(); });
+    button.addEventListener("pointerup", hide);
+    button.addEventListener("pointercancel", hide);
+    button.addEventListener("keydown", (event) => { if (event.key === " " || event.key === "Enter") show(); });
+    button.addEventListener("keyup", hide);
+    button.addEventListener("blur", hide);
+  });
   document.querySelectorAll("#loginForm, #registerForm, #forgotForm").forEach((form) =>
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
