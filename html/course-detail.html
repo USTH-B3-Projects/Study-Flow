@@ -31,14 +31,17 @@
     <main class="container course-main page-enter">
       <a class="back-link" href="course.html">&larr; My courses</a>
       <section id="courseHero"></section>
-      <section id="courseStats" class="course-stats"></section>
-      <section id="warningArea"></section>
-      <section class="task-toolbar">
-        <div id="filters" class="filters"></div>
-        <div class="toolbar-actions"><label class="task-search"><span aria-hidden="true">&#9906;</span><span class="sr-only">Search tasks</span><input id="taskSearch" class="input" type="search" placeholder="Search tasks..."></label><select id="sortSelect" class="select" aria-label="Sort tasks"><option value="priority">Sort: Priority</option><option value="deadline">Sort: Deadline</option><option value="importance">Sort: Importance</option><option value="createdAt">Sort: Created</option></select><button id="addTaskBtn" class="btn btn-primary">+ Add task</button></div>
+      <section id="courseRecommended"></section>
+      <section class="task-section" aria-labelledby="tasksTitle">
+        <section class="task-toolbar">
+          <h2 id="tasksTitle">Tasks <span id="taskCount"></span></h2>
+          <button id="addTaskBtn" class="btn btn-primary">+ Add task</button>
+          <div id="filters" class="filters" aria-label="Filter tasks"></div>
+          <div class="toolbar-actions"><label class="task-search"><span aria-hidden="true">&#9906;</span><span class="sr-only">Search tasks</span><input id="taskSearch" class="input" type="search" placeholder="Search tasks..."></label><select id="sortSelect" class="select" aria-label="Sort tasks"><option value="priority">Sort: Priority</option><option value="deadline">Sort: Deadline</option><option value="importance">Sort: Importance</option><option value="createdAt">Sort: Created</option></select></div>
+        </section>
+        <section id="bulkActions" class="bulk-actions" aria-live="polite" hidden></section>
+        <section id="taskList" class="task-list"></section>
       </section>
-      <section id="bulkActions" class="bulk-actions" aria-live="polite" hidden></section>
-      <section id="taskList" class="task-list"></section>
     </main>
     <div id="modalRoot"></div>
     <script type="module" src="../js/app.js?v=4"></script>

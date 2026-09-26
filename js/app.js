@@ -422,12 +422,12 @@ async function initNotifications() {
   };
 }
 function courseTaskTable(tasks, selectedTaskId = null, selectedTaskIds = null) {
-  return `<div class="course-task-table"><div class="task-table-head" aria-hidden="true"><span>Task</span><span>Status</span><span>Priority</span><span>Due date</span><span>Estimated</span><span>Progress</span><span></span></div>${tasks.map((task) => {
+  return `<div class="course-task-table">${tasks.map((task) => {
     const name = task.taskName || task.name,
       status = task.completionStatus === "completed" ? ["completed", "Completed"] : task.isOverdue ? ["overdue", "Overdue"] : ["pending", "Pending"],
       importance = task.importance.replace("-", " ");
     const bulkSelected = selectedTaskIds?.has(task.taskId);
-    return `<article class="task-row table-task-row ${status[0] === "completed" ? "completed" : ""} ${selectedTaskId === task.taskId ? "details-open" : ""} ${bulkSelected ? "bulk-selected" : ""}" data-task-id="${task.taskId}" tabindex="0" aria-expanded="${selectedTaskId === task.taskId}"><div class="table-task-name"><button class="check ${bulkSelected ? "checked" : ""}" data-select="${task.taskId}" aria-label="Select ${esc(name)}" aria-pressed="${Boolean(bulkSelected)}">${bulkSelected ? "&#10003;" : ""}</button><strong>${esc(name)}</strong></div><span data-label="Status" class="status ${status[0]}">${status[1]}</span><span data-label="Priority" class="status ${task.importance}">${esc(importance)}</span><time data-label="Due date" datetime="${esc(task.deadline)}" class="${task.isOverdue ? "danger-text" : ""}">${dueLabel(task.deadline)}</time><span data-label="Estimated">${task.estimatedDuration == null ? "3.0h" : `${Number(task.estimatedDuration).toFixed(1)}h`}</span><div data-label="Progress" class="table-progress"><strong>${task.currentProgress}%</strong><div class="progress" aria-label="${task.currentProgress}% complete"><span style="width:${task.currentProgress}%"></span></div></div><details class="task-menu"><summary aria-label="Task actions">&bull;&bull;&bull;</summary><div><button data-edit="${task.taskId}">Edit task</button><button class="danger" data-delete="${task.taskId}">Delete task</button></div></details><aside class="task-preview"><div class="task-preview-inner"><small>Task details</small><strong>${esc(name)}</strong>${taskDetails(task, true)}</div></aside></article>`;
+    return `<article class="task-row table-task-row ${status[0] === "completed" ? "completed" : ""} ${selectedTaskId === task.taskId ? "details-open" : ""} ${bulkSelected ? "bulk-selected" : ""}" data-task-id="${task.taskId}" tabindex="0" aria-expanded="${selectedTaskId === task.taskId}"><button class="check ${bulkSelected ? "checked" : ""}" data-select="${task.taskId}" aria-label="Select ${esc(name)}" aria-pressed="${Boolean(bulkSelected)}">${bulkSelected ? "&#10003;" : ""}</button><div class="table-task-name"><strong>${esc(name)}</strong>${task.description ? `<small>${esc(task.description)}</small>` : ""}</div><div class="task-badges"><span class="status ${status[0]}">${status[1]}</span><span class="status ${task.importance}">${esc(importance)}</span>${task.hasWorkloadWarning ? '<span class="workload-warning">! Workload warning</span>' : ""}</div><time datetime="${esc(task.deadline)}" class="task-deadline ${task.isOverdue ? "danger-text" : ""}">${dueLabel(task.deadline)}<small>${fmtDate(task.deadline)}</small></time><div class="table-progress"><strong>${task.currentProgress}%</strong><div class="progress" aria-label="${task.currentProgress}% complete"><span style="width:${task.currentProgress}%"></span></div></div><span class="task-remaining">~${Number(task.remainingWorkload.toFixed(1))}h <small>remaining</small></span><span class="task-score"><small>Priority</small>${Math.round(task.priorityScore)}</span><details class="task-menu"><summary aria-label="Task actions">&bull;&bull;&bull;</summary><div>${status[0] !== "completed" ? `<button data-complete="${task.taskId}">Mark completed</button>` : ""}<button data-edit="${task.taskId}">Edit task</button><button class="danger" data-delete="${task.taskId}">Delete task</button></div></details><aside class="task-preview"><div class="task-preview-inner"><strong>${esc(name)}</strong>${taskDetails(task, true)}<div class="task-detail-actions">${status[0] !== "completed" ? `<button class="btn btn-primary" data-complete="${task.taskId}">Mark completed</button>` : ""}<button class="btn btn-outline" data-edit="${task.taskId}">Edit task</button><button class="btn btn-danger" data-delete="${task.taskId}">Delete task</button></div></div></aside></article>`;
   }).join("")}</div>`;
 }
 
@@ -681,13 +681,14 @@ function initCourseDetail() {
         completed: all.filter((t) => t.displayStatus === "completed").length,
         overdue: all.filter((t) => t.displayStatus === "overdue").length,
       };
-      const progress = taskService.getProgress(all);
+      const progress = taskService.getProgress(all),
+        [recommended] = smartService.recommended(raw, 1);
       $("#courseHero").innerHTML =
-        `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div><h1>${esc(course.courseName)}</h1><p>${all.length} tasks &middot; ${counts.completed} completed</p></div></div><div class="course-overview"><div class="course-progress-copy"><strong>${progress}% complete</strong><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div></div><div class="course-actions"><button id="courseRecommend" class="btn btn-outline">What should I do next?</button><button id="editCourse" class="btn btn-outline">Edit course</button><button id="deleteCourse" class="btn btn-danger">Delete</button></div></div></section>`;
-      $("#courseStats").innerHTML =
-        `<article class="course-stat pending"><span>Pending</span><strong>${counts.pending}</strong></article><article class="course-stat completed"><span>Completed</span><strong>${counts.completed}</strong></article><article class="course-stat overdue"><span>Overdue</span><strong>${counts.overdue}</strong></article>`;
-      $("#warningArea").innerHTML = warningList(smartService.getWorkloadWarning(raw));
-      wireExpandable("#warningArea .warning-task");
+        `<section class="course-hero"><div class="course-title"><div class="course-dot" style="background:${course.color || "#e9f2ff"}22;color:${course.color || "var(--blue)"}">${esc(course.courseName.slice(0, 1).toUpperCase())}</div><div><h1>${esc(course.courseName)}</h1><p>${all.length} tasks &middot; ${counts.completed} completed &middot; ${counts.overdue} overdue</p></div></div><div class="course-progress-copy"><strong>${progress}% complete</strong><div class="progress" aria-label="${progress}% complete"><span style="width:${progress}%;background:${course.color || "var(--blue)"}"></span></div></div><div class="course-actions"><button id="editCourse" class="btn btn-outline">Edit course</button><details class="course-menu"><summary aria-label="Course actions">&bull;&bull;&bull;</summary><div><button data-menu-edit-course>Edit course</button><button id="deleteCourse" class="danger">Delete course</button></div></details></div></section>`;
+      $("#courseRecommended").innerHTML = recommended
+        ? `<article class="recommended-next"><header><h2>Recommended next</h2><span>Based on smart prioritization</span></header><div class="recommended-body"><div class="recommended-icon" aria-hidden="true">${esc((recommended.taskName || recommended.name).slice(0, 1).toUpperCase())}</div><div class="recommended-copy"><strong>${esc(recommended.taskName || recommended.name)}</strong><span>${dueLabel(recommended.deadline)} &middot; ~${Number(recommended.remainingWorkload.toFixed(1))}h remaining</span></div><div class="recommended-progress"><div><strong>${recommended.currentProgress}%</strong><span> complete</span></div><div class="progress" aria-label="${recommended.currentProgress}% complete"><span style="width:${recommended.currentProgress}%"></span></div></div><div class="task-badges"><span class="status ${recommended.isOverdue ? "overdue" : "pending"}">${recommended.isOverdue ? "Overdue" : "Pending"}</span><span class="status ${recommended.importance}">${esc(recommended.importance.replace("-", " "))}</span></div><div class="recommended-score"><span>Priority</span><strong>${Math.round(recommended.priorityScore)}</strong></div><button class="btn btn-primary" data-open-task="${recommended.taskId}">Open task &rarr;</button></div></article>`
+        : `<article class="recommended-next recommended-empty"><div><h2>You're all caught up</h2><p>No pending tasks in this course.</p></div></article>`;
+      $("#taskCount").textContent = `(${all.length})`;
       $("#filters").innerHTML = [
         ["all", "All"],
         ["pending", "In progress"],
@@ -763,6 +764,17 @@ function initCourseDetail() {
             });
           }),
       );
+      document.querySelectorAll("[data-complete]").forEach((button) => button.onclick = async () => {
+        try {
+          await taskService.setProgress(button.dataset.complete, 100);
+          await render();
+          toast("Task completed");
+        } catch (error) { toast(error.message); }
+      });
+      $("[data-open-task]")?.addEventListener("click", (event) => {
+        selectedTaskId = event.currentTarget.dataset.openTask;
+        render().then(() => document.querySelector(`[data-task-id="${CSS.escape(selectedTaskId)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      });
       document.querySelectorAll(".task-row").forEach((row) => {
         const details = row.querySelector(".task-preview");
         details.style.setProperty("--details-height", `${details.scrollHeight}px`);
@@ -820,11 +832,12 @@ function initCourseDetail() {
               color: d.get("color"),
             });
             close();
-            location.reload();
+            await render();
           } catch (e) {
             toast(e.message);
           }
         });
+      $("[data-menu-edit-course]").onclick = $("#editCourse").onclick;
       $("#deleteCourse").onclick = async () => {
         if (confirm("Delete course and all its tasks?")) {
           try {
@@ -834,16 +847,6 @@ function initCourseDetail() {
             toast(e.message);
           }
         }
-      };
-      $("#courseRecommend").onclick = () => {
-        const r = smartService.recommended(raw, 3);
-        modal(
-          "Next tasks in this course",
-          r.length
-            ? `<div class="recommend-list">${r.map((t, i) => { const taskNameField = t.taskName || t.name; return `<article class="recommend"><div class="rank">${i + 1}</div><div><h3>${esc(taskNameField)}</h3><p>${dueLabel(t.deadline)} · ${t.remainingWorkload.toFixed(1)}h remaining</p></div></article>`; }).join("")}</div>`
-            : '<div class="empty">No pending tasks.</div>',
-          () => {},
-        );
       };
     } catch (error) {
       toast(error.message);
