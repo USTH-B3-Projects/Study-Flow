@@ -51,11 +51,14 @@ jobs:
           find _site -maxdepth 1 -name '*.html' -exec sed -i 's|\.\./source/|./source/|g' {} +
           find _site -maxdepth 1 -name '*.html' -exec sed -i 's|\.\./logo\.png|./logo.png|g' {} +
 
-          # 6) Rewrite "../" paths in JS files (template literals reference ../source/)
+          # 6) Rewrite "../" paths in JS files (template literals inject img src
+          #    into the DOM, which resolves relative to the page URL, not the JS file)
           find _site/js -name '*.js' -exec sed -i 's|\.\./source/|./source/|g' {} +
+          find _site/js -name '*.js' -exec sed -i 's|\.\./logo\.png|./logo.png|g' {} +
 
-          # 7) Rewrite "../" paths in CSS files (url("../source/..."))
-          find _site/css -name '*.css' -exec sed -i 's|\.\./source/|./source/|g' {} +
+          # 7) CSS url() paths resolve relative to the CSS file itself.
+          #    css/ is one level deep, so ../source/ already resolves to source/.
+          #    No rewriting needed for CSS files.
 
           echo "=== Site structure ==="
           find _site -type f | head -40
