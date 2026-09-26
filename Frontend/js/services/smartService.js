@@ -3,7 +3,7 @@ import { getTasksByUserId, getTasksByCourseId } from "./taskService.js";
 // The number of milliseconds in a day, used to calculate the interval between days.
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-const DEFAULT_EFFECTIVE_DURATION = 3;
+const DEFAULT_EFFECTIVE_DURATION = 2;
 
 export function calculateUrgencyScore(deadline) {
   const now = new Date();

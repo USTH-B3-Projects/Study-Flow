@@ -62,6 +62,200 @@ function modal(title, body, onSubmit) {
   root.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", close));
   const duration = root.querySelector("[data-duration-select]");
   const customDuration = root.querySelector("[data-custom-duration]");
+  const enhanceSelect = (select) => {
+    const picker = document.createElement("div");
+    const trigger = document.createElement("button");
+    const options = document.createElement("div");
+    picker.className = "ui-select-picker";
+    trigger.type = "button";
+    trigger.className = "ui-select-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    options.className = "ui-select-options";
+    options.setAttribute("role", "listbox");
+    options.hidden = true;
+    options.innerHTML = [...select.options].map((option) => `<button type="button" role="option" data-select-value="${option.value}" aria-selected="${option.selected}"><span>${option.textContent}</span></button>`).join("");
+    select.before(picker);
+    picker.append(select, trigger);
+    root.append(options);
+    select.classList.add("ui-native-select");
+    const closeOptions = () => {
+      options.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    };
+    const sync = () => {
+      trigger.innerHTML = `<span>${select.selectedOptions[0].textContent}</span><span aria-hidden="true">⌄</span>`;
+      options.querySelectorAll("[data-select-value]").forEach((option) => option.setAttribute("aria-selected", option.dataset.selectValue === select.value));
+    };
+    trigger.addEventListener("click", () => {
+      const opening = options.hidden;
+      root.querySelectorAll(".ui-select-options:not([hidden])").forEach((menu) => (menu.hidden = true));
+      root.querySelectorAll('.ui-select-trigger[aria-expanded="true"]').forEach((button) => button.setAttribute("aria-expanded", "false"));
+      if (!opening) return;
+      const rect = trigger.getBoundingClientRect();
+      options.style.width = `${rect.width}px`;
+      options.style.left = `${rect.left}px`;
+      options.hidden = false;
+      options.style.maxHeight = `${Math.max(160, Math.min(390, window.innerHeight - 32))}px`;
+      const menuHeight = options.offsetHeight;
+      const top = rect.bottom + 8 + menuHeight <= window.innerHeight ? rect.bottom + 8 : Math.max(8, rect.top - menuHeight - 8);
+      options.style.top = `${top}px`;
+      trigger.setAttribute("aria-expanded", "true");
+      options.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+    });
+    options.addEventListener("click", (event) => {
+      const option = event.target.closest("[data-select-value]");
+      if (!option) return;
+      select.value = option.dataset.selectValue;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      closeOptions();
+      if (select.value !== "custom") trigger.focus();
+    });
+    select.addEventListener("change", sync);
+    root.addEventListener("click", (event) => {
+      if (!picker.contains(event.target) && !options.contains(event.target)) closeOptions();
+    });
+    sync();
+    return { trigger, close: closeOptions, sync };
+  };
+  if (duration) enhanceSelect(duration);
+  const pickerOnly = root.querySelector('input[type="datetime-local"][name="deadline"]');
+  if (pickerOnly) {
+    const picker = document.createElement("div");
+    const display = document.createElement("span");
+    const icon = document.createElement("span");
+    const chevron = document.createElement("span");
+    const datePicker = document.createElement("div");
+    const timePicker = document.createElement("div");
+    picker.className = "deadline-picker";
+    display.className = "deadline-picker-display";
+    icon.className = "deadline-picker-calendar";
+    icon.textContent = "📅";
+    chevron.className = "deadline-picker-chevron";
+    chevron.textContent = "›";
+    icon.setAttribute("aria-hidden", "true");
+    chevron.setAttribute("aria-hidden", "true");
+    datePicker.className = "deadline-date-picker";
+    datePicker.hidden = true;
+    datePicker.innerHTML = `<strong>Select date</strong><div class="deadline-calendar-header"><span data-deadline-month></span><div class="deadline-calendar-nav"><button type="button" data-deadline-prev aria-label="Previous month">&lsaquo;</button><button type="button" data-deadline-next aria-label="Next month">&rsaquo;</button></div></div><div class="deadline-calendar-weekdays" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div><div class="deadline-calendar-grid" role="grid"></div><button type="button" class="btn btn-primary" data-deadline-continue disabled>Continue</button>`;
+    timePicker.className = "deadline-time-picker";
+    timePicker.hidden = true;
+    timePicker.innerHTML = `<strong>Select time</strong><div class="deadline-time-controls"><label>Hour<select data-deadline-hour>${Array.from({ length: 12 }, (_, i) => `<option>${i + 1}</option>`).join("")}</select></label><label>Minute<select data-deadline-minute>${Array.from({ length: 60 }, (_, i) => `<option>${String(i).padStart(2, "0")}</option>`).join("")}</select></label><label>Period<select data-deadline-period><option>AM</option><option>PM</option></select></label></div><button type="button" class="btn btn-primary" data-deadline-done>Done</button>`;
+    pickerOnly.before(picker);
+    picker.append(pickerOnly, icon, display, chevron);
+    root.append(datePicker, timePicker);
+    pickerOnly.classList.add("deadline-picker-input");
+    pickerOnly.tabIndex = -1;
+    const updateDeadlineDisplay = () => {
+      picker.classList.toggle("has-value", Boolean(pickerOnly.value));
+      if (!pickerOnly.value) return (display.textContent = "Select a deadline");
+      const deadline = new Date(pickerOnly.value);
+      const date = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(deadline);
+      const time = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }).format(deadline);
+      display.textContent = `${date} · ${time}`;
+    };
+    const hour = timePicker.querySelector("[data-deadline-hour]");
+    const minute = timePicker.querySelector("[data-deadline-minute]");
+    const period = timePicker.querySelector("[data-deadline-period]");
+    const hourPicker = enhanceSelect(hour);
+    const minutePicker = enhanceSelect(minute);
+    const periodPicker = enhanceSelect(period);
+    const monthLabel = datePicker.querySelector("[data-deadline-month]");
+    const calendarGrid = datePicker.querySelector(".deadline-calendar-grid");
+    const continueButton = datePicker.querySelector("[data-deadline-continue]");
+    let selectedDate = pickerOnly.value.slice(0, 10);
+    let visibleMonth = selectedDate ? new Date(`${selectedDate}T00:00`) : new Date();
+    visibleMonth.setDate(1);
+    const positionPanel = (panel) => {
+      const rect = picker.getBoundingClientRect();
+      const width = Math.min(340, window.innerWidth - 16);
+      panel.style.width = `${width}px`;
+      panel.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - width - 8)}px`;
+      panel.style.maxHeight = `${window.innerHeight - 16}px`;
+      const panelHeight = panel.offsetHeight;
+      const top = rect.bottom + 8 + panelHeight <= window.innerHeight ? rect.bottom + 8 : Math.max(8, rect.top - panelHeight - 8);
+      panel.style.top = `${top}px`;
+    };
+    const dateValue = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const renderCalendar = () => {
+      const year = visibleMonth.getFullYear();
+      const month = visibleMonth.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      monthLabel.textContent = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(visibleMonth);
+      calendarGrid.innerHTML = Array.from({ length: 42 }, (_, index) => {
+        const date = new Date(year, month, index - firstDay + 1);
+        const value = dateValue(date);
+        return `<button type="button" class="deadline-calendar-day${date.getMonth() === month ? "" : " is-outside"}${value === selectedDate ? " is-selected" : ""}" data-deadline-date="${value}" role="gridcell" aria-selected="${value === selectedDate}">${date.getDate()}</button>`;
+      }).join("");
+      continueButton.disabled = !selectedDate;
+    };
+    const openDatePicker = () => {
+      selectedDate = pickerOnly.value.slice(0, 10) || selectedDate;
+      const selected = selectedDate ? new Date(`${selectedDate}T00:00`) : new Date();
+      visibleMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
+      timePicker.hidden = true;
+      datePicker.hidden = false;
+      renderCalendar();
+      positionPanel(datePicker);
+    };
+    const openTimePicker = () => {
+      const selected = pickerOnly.value ? new Date(pickerOnly.value) : new Date();
+      const hours = selected.getHours();
+      hour.value = String(hours % 12 || 12);
+      minute.value = String(selected.getMinutes()).padStart(2, "0");
+      period.value = hours >= 12 ? "PM" : "AM";
+      hourPicker.sync();
+      minutePicker.sync();
+      periodPicker.sync();
+      timePicker.hidden = false;
+      positionPanel(timePicker);
+      hourPicker.trigger.focus();
+    };
+    picker.tabIndex = 0;
+    picker.setAttribute("role", "button");
+    picker.setAttribute("aria-label", "Select deadline date and time");
+    picker.addEventListener("click", (event) => {
+      if (!event.target.closest(".deadline-date-picker, .deadline-time-picker")) openDatePicker();
+    });
+    picker.addEventListener("keydown", (event) => {
+      if (event.target === picker && ["Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        openDatePicker();
+      }
+    });
+    datePicker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (event.target.closest("[data-deadline-prev]")) visibleMonth.setMonth(visibleMonth.getMonth() - 1);
+      else if (event.target.closest("[data-deadline-next]")) visibleMonth.setMonth(visibleMonth.getMonth() + 1);
+      else if (event.target.closest("[data-deadline-date]")) selectedDate = event.target.closest("[data-deadline-date]").dataset.deadlineDate;
+      else if (event.target.closest("[data-deadline-continue]")) {
+        datePicker.hidden = true;
+        return openTimePicker();
+      } else return;
+      renderCalendar();
+    });
+    timePicker.querySelector("[data-deadline-done]").addEventListener("click", () => {
+      let hours = Number(hour.value) % 12;
+      if (period.value === "PM") hours += 12;
+      pickerOnly.value = `${selectedDate}T${String(hours).padStart(2, "0")}:${minute.value}`;
+      pickerOnly.dispatchEvent(new Event("input", { bubbles: true }));
+      pickerOnly.dispatchEvent(new Event("change", { bubbles: true }));
+      timePicker.hidden = true;
+      picker.focus();
+    });
+    pickerOnly.addEventListener("input", updateDeadlineDisplay);
+    pickerOnly.addEventListener("change", updateDeadlineDisplay);
+    updateDeadlineDisplay();
+  }
+  pickerOnly?.addEventListener("keydown", (event) => {
+    const manualEdit = (event.key.length === 1 && event.key !== " " && !event.ctrlKey && !event.metaKey && !event.altKey) || ["Backspace", "Delete"].includes(event.key);
+    if (manualEdit) event.preventDefault();
+  });
+  pickerOnly?.addEventListener("beforeinput", (event) => {
+    if (event.inputType) event.preventDefault();
+  });
+  pickerOnly?.addEventListener("paste", (event) => event.preventDefault());
+  pickerOnly?.addEventListener("drop", (event) => event.preventDefault());
   duration?.addEventListener("change", () => {
     const custom = duration.value === "custom";
     customDuration.hidden = !custom;
@@ -75,8 +269,18 @@ function modal(title, body, onSubmit) {
     const update = () => {
       output.textContent = labels?.[input.value] ?? `${input.value}%`;
       const progress = (input.value - input.min) / (input.max - input.min) * 100;
-      input.closest(".progress-slider")?.style.setProperty("--progress", `${progress}%`);
+      const slider = input.closest(".progress-slider");
+      slider?.style.setProperty("--progress", `${progress}%`);
+      slider?.querySelectorAll("[data-range-value]").forEach((marker) => {
+        const selected = marker.dataset.rangeValue === input.value;
+        marker.classList.toggle("is-selected", selected);
+        marker.setAttribute("aria-pressed", selected);
+      });
     };
+    input.closest(".progress-slider")?.querySelectorAll("[data-range-value]").forEach((marker) => marker.addEventListener("click", () => {
+      input.value = marker.dataset.rangeValue;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }));
     input.addEventListener("input", update);
     update();
   });
@@ -96,11 +300,12 @@ function modal(title, body, onSubmit) {
 function taskForm(task = {}) {
   const taskNameField = task.taskName || task.name || "";
   const duration = task.estimatedDuration ?? "";
-  const presets = ["", ".25", ".5", "1", "2", "3", "4", "5", "6", "8"];
+  const presets = ["", ".25", ".5", "1", "2", "3", "4", "5"];
   const custom = duration !== "" && !presets.includes(String(duration));
   const importance = ["very-low", "low", "medium", "high", "very-high"];
   const importanceIndex = Math.max(0, importance.indexOf(task.importance || "medium"));
-  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="section-heading"><span class="section-icon" aria-hidden="true">▱</span><div><strong>Basic Information</strong><small>Give your task a clear name and add any useful notes.</small></div></div><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="taskName" required value="${esc(taskNameField)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="3" maxlength="500" placeholder="Add a note...">${esc(task.description || "")}</textarea></div></section><section class="planning"><div class="planning-head"><div class="section-heading"><span class="section-icon" aria-hidden="true">□</span><div><strong>Planning &amp; Prioritization</strong><small>Set a deadline, estimate the effort, and indicate how important this task is.</small></div></div><aside class="studyflow-hint"><img src="../source/studyflow-note/idea.png" alt="" aria-hidden="true"><span>These details help StudyFlow calculate task priority and recommend what you should work on next.</span></aside></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? localDateTimeValue(task.deadline) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (3h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"], ["6", "6 hours"], ["8", "8 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; If not specified, we use a default of 3 hours.</small></div></div><div class="form-field range-field importance-range"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"><span class="progress-slider-sparkles"></span></span><span class="progress-slider-thumb"></span></span><input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very low|Low|Medium|High|Very high"></div><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field progress-range"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"><span class="progress-slider-sparkles"></span></span><span class="progress-slider-thumb"></span></span><input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></div></section></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
+  const markers = (values, labels) => `<span class="slider-markers">${values.map((value, index) => `<button type="button" class="slider-marker" style="left:${index * 25}%" data-range-value="${value}" aria-label="Set to ${labels[index]}"><span>${labels[index]}</span></button>`).join("")}</span>`;
+  return `<form class="modal-form task-modal-form"><div class="task-modal-body"><section class="task-details"><div class="section-heading"><div><strong>Basic Information</strong><small>Give your task a clear name and add any useful notes.</small></div></div><div class="form-field"><label>Task name <b>*</b></label><input class="input" name="taskName" required value="${esc(taskNameField)}" placeholder="e.g. Finish Deep Learning lab"></div><div class="form-field"><div class="field-label"><label>Note</label><small>Optional</small></div><textarea class="textarea" name="description" rows="3" maxlength="500" placeholder="Add a note...">${esc(task.description || "")}</textarea></div></section><section class="planning"><div class="section-heading"><div><strong>Planning &amp; Prioritization</strong><small>Set a deadline, estimate the effort, and indicate how important this task is.</small></div></div><div class="planning-grid"><div class="form-field"><label>Deadline <b>*</b></label><input class="input" type="datetime-local" name="deadline" required value="${task.deadline ? localDateTimeValue(task.deadline) : ""}"></div><div class="form-field duration-field"><label>Estimated duration</label><select class="select" data-duration-select><option value="" ${duration === "" ? "selected" : ""}>Default (2h)</option>${[[".25", "15 minutes"], [".5", "30 minutes"], ["1", "1 hour"], ["2", "2 hours"], ["3", "3 hours"], ["4", "4 hours"], ["5", "5 hours"]].map(([v, label]) => `<option value="${v}" ${String(duration) === v ? "selected" : ""}>${label}</option>`).join("")}<option value="custom" ${custom ? "selected" : ""}>Custom</option></select><input class="input custom-duration" data-custom-duration name="estimatedDuration" ${custom ? "required" : "hidden"} type="number" min="0.25" step="0.25" value="${duration}" placeholder="Hours"><small>Optional &middot; If not specified, we use a default of 2 hours.</small></div></div><div class="form-field range-field importance-range"><div class="field-label"><label>Importance <b>*</b></label><output data-range-output="importanceIndex"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"></span></span>${markers([0, 1, 2, 3, 4], ["Very Low", "Low", "Medium", "High", "Very High"])}<input type="range" min="0" max="4" step="1" name="importanceIndex" value="${importanceIndex}" data-range data-labels="Very Low|Low|Medium|High|Very High"></div><input type="hidden" name="importance" value="${importance[importanceIndex]}"></div><div class="form-field range-field progress-range"><div class="field-label"><label>Progress</label><output data-range-output="currentProgress"></output></div><div class="progress-slider"><span class="progress-slider-track" aria-hidden="true"><span class="progress-slider-active"></span></span>${markers([0, 25, 50, 75, 100], ["0%", "25%", "50%", "75%", "100%"])}<input type="range" min="0" max="100" step="25" name="currentProgress" value="${Number(task.currentProgress || 0)}" data-range></div></div></section></div><div class="modal-actions"><button type="button" class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary"><span aria-hidden="true">+</span>${task.taskId ? "Save task" : "Create task"}</button></div></form>`;
 }
 function taskFormWithCourse(task, courses) {
   const selected = courses.find((course) => course.courseId === task.courseId);
