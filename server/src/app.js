@@ -11,7 +11,9 @@ const app = express();
 app.use(cors({
   origin: [
     'http://127.0.0.1:5501',
-    'https://usth-b3-projects.github.io'
+    'https://usth-b3-projects.github.io',
+    'http://localhost:5500',
+    'http://localhost:5501'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type']
