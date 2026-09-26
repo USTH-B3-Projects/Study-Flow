@@ -35,15 +35,15 @@ cdp("Page.enable")
 cdp("Page.addScriptToEvaluateOnNewDocument", {
     "source": "localStorage.setItem('studyflow_current_user', JSON.stringify({username:'testuser', studentName:'Test User'}));"
 })
-cdp("Page.navigate", {"url": "http://127.0.0.1:5501/html/tasks.html"})
+cdp("Page.navigate", {"url": "http://127.0.0.1:5501/Frontend/html/tasks.html"})
 time.sleep(1)
 ws.close()
 targets = json.load(urllib.request.urlopen("http://localhost:9223/json/list"))
-target = next(item for item in targets if item["url"].endswith("/html/tasks.html"))
+target = next(item for item in targets if item["url"].endswith("/Frontend/html/tasks.html"))
 ws = websocket.create_connection(target["webSocketDebuggerUrl"])
 frame_id = cdp("Page.getFrameTree")["frameTree"]["frame"]["id"]
 runtime_context = cdp("Page.createIsolatedWorld", {"frameId": frame_id})["executionContextId"]
-assert evaluate("location.pathname") == "/html/tasks.html", evaluate("location.href")
+assert evaluate("location.pathname") == "/Frontend/html/tasks.html", evaluate("location.href")
 evaluate("document.querySelector('#addTaskBtn').click()")
 time.sleep(1)
 evaluate("document.querySelector('.deadline-picker').click()")
